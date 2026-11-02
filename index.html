@@ -162,7 +162,25 @@ h2 { font: 700 1.3rem/1.2 var(--display); margin: 0; overflow-wrap: anywhere; }
 .actions { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 .shop { font-weight: 600; margin-right: auto; overflow-wrap: anywhere; }
 .tick { padding-left: 11px; margin-left: auto; }
-.tick.done::before { background: var(--berry); box-shadow: inset 0 0 0 3px var(--paper); }
+.joy-actions { gap: 8px 16px; }
+.joy-actions .tick { margin-left: 0; }
+.stepper {
+  display: inline-flex; align-items: center; flex: none; margin-left: auto; overflow: hidden;
+  min-height: 42px; border: 1px solid var(--line); border-radius: 9px; background: var(--paper);
+}
+.stepper button {
+  width: 36px; height: 40px; padding: 0; border: 0; background: transparent; cursor: pointer;
+  font-size: 1.3rem; line-height: 1; font-weight: 600; color: var(--ink);
+}
+.stepper button:hover:not([disabled]) { color: var(--berry); background: var(--bg); }
+.stepper button[disabled] { opacity: .35; cursor: default; }
+.stepper button:focus-visible { outline-offset: -3px; }
+.qty-value { min-width: 28px; text-align: center; font-weight: 600; font-variant-numeric: tabular-nums; }
+.undo {
+  justify-self: start; padding: 0; border: 0; background: none; cursor: pointer;
+  color: var(--muted); font-size: .875rem; text-decoration: underline;
+}
+.undo:hover { color: var(--berry); }
 .tick::before {
   content: ""; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--berry); flex: none;
 }
@@ -252,6 +270,9 @@ input[type="text"], input[type="password"], select {
   .tag::before { left: 13px; }
   .tag > .thumb { width: 76px; grid-row: auto; }
   .actions { grid-column: 1 / -1; }
+  .joy-actions { gap: 8px; }
+  .stepper button { width: 32px; }
+  .joy-actions .tick { padding-inline: 8px; gap: 6px; margin-left: auto; font-size: .9375rem; white-space: nowrap; }
   .shop { width: 100%; }
 }
 </style>
@@ -447,6 +468,7 @@ input[type="text"], input[type="password"], select {
 <script>
 /* ===== SETTINGS ===== */
 const API_URL = 'https://script.google.com/macros/s/AKfycbyESgq3B2PIrREr8nM5fegFD_gac1kMnKlrmAXmS_SsebF6XgO4CNekNmz9RMb8eNwBHw/exec';
+const MAX_QUANTITY = 20;   // the highest number in the Malé radosti counter
 const LIST_TITLE = ['Seznam vánočních přání', 'Anežky a Filipa 2026'];   // one entry per line
 /* ========================================== */
 
@@ -475,13 +497,13 @@ const T = {
     noMatch: 'Tomuto rozmezí teď nic neodpovídá', noMatchBody: 'Zkuste upravit filtry. Při zadané ceně se zobrazují jen přání, která mají cenu - ta bez ní nejsou vidět.',
     joyTitle: 'Malé radosti', joyLede: 'Další a méně specifická přání do pár stovek, která může splnit kdokoli a která mohou být splněna i vícekrát.', joyPrice: 'do 500 Kč',
     addJoy: 'Přidat malou radost', newJoy: 'Nová malá radost', editJoy: 'Upravit malou radost', joyName: 'Co by mě potěšilo',
-    join: 'Přidám se', joined: 'Přidali jste se. Zrušit', joinCount: 'Počet dárců:', restoreJoy: 'Vynulovat počet',
+    joinCount: 'Splněno:', undo: 'Vzít zpět', qtyLess: 'Ubrat', qtyMore: 'Přidat', qty: 'Počet', restoreJoy: 'Vynulovat počet',
     tJoined: 'Díky!', tLeft: 'Zrušeno', tJoyReset: 'Počet je vynulovaný',
     imgIdleIdea: 'Na obrázek klikněte pravým tlačítkem, zvolte Kopírovat adresu obrázku a vložte ji sem. Na telefonu podržte prst na obrázku.',
     imgTooBig: 'Tenhle obrázek je moc velký. Otevřete ho ve větší velikosti a zkopírujte adresu obrázku.',
     imgNotSaved: 'Z tohoto odkazu se obrázek nepodařilo získat, takže přání není uložené. Vložte přímo adresu obrázku, nebo pole s obrázkem vymažte.',
-    oldBackend: 'Tabulka ještě běží na staré verzi skriptu, takže obrázky u nekonkrétních přání a malé radosti nebudou fungovat. V Apps Script vložte nový Code.gs a zvolte Deploy > Manage deployments > tužka > New version > Deploy.',
-    emptyWishes: 'Všechna přání už jsou splněná', emptyWishesBody: 'Pořád se můžete přidat k některé z malých radostí.',
+    oldBackend: 'Tabulka ještě běží na starší verzi skriptu, takže některé funkce nebudou správně fungovat. V Apps Script vložte nový Code.gs a zvolte Deploy > Manage deployments > tužka > New version > Deploy.',
+    emptyWishes: 'Všechna přání už jsou splněná', emptyWishesBody: 'Pořád si můžete vybrat některou z malých radostí.',
     emptyBought: 'Zatím nebylo splněno nic.', emptyBoughtBody: 'Splněná přání se objeví tady.',
     tBought: 'Hotovo. Děkujeme, že plníte přání. Přání zmizelo ze seznamu.', tSaved: 'Uloženo', tRemoved: 'Smazáno', tRestored: 'Přání je zpět v seznamu', tSignedOut: 'Odhlášeno',
     e_bad_login: 'Jméno nebo heslo nesedí.', e_locked: 'Příliš mnoho pokusů. Zkuste to za 15 minut.',
@@ -576,7 +598,8 @@ function demo(action, req) {
     case 'join': case 'leave': {
       const item = find(req.id);
       if (item.kind !== 'joy') throw new Error('bad_input');
-      item.joined = Math.max(0, (item.joined || 0) + (action === 'join' ? 1 : -1));
+      const quantity = Math.min(100, Math.max(1, Math.floor(Number(req.quantity)) || 1));
+      item.joined = Math.max(0, (item.joined || 0) + (action === 'join' ? quantity : -quantity));
       item.bought = item.joined ? new Date().toISOString() : '';
       return reply();
     }
@@ -678,6 +701,7 @@ function apply(data) {
   const hadSession = !!state.token;
   state.items = data.items || [];
   state.owner = !!data.owner;
+  state.backend = data.backend;
   if (data.token) { state.token = data.token; store.set('wishlist-token', data.token); }
   if (hadSession && !data.token && !state.owner) {
     state.token = null; store.del('wishlist-token');
@@ -745,8 +769,32 @@ function setThumb(box, src, alt, onFail) {
   box.append(img);
 }
 
-function joinedIds() {
-  try { return JSON.parse(store.get('wishlist-joined')) || []; } catch { return []; }
+/* How many of each small happiness this device has added, so they can be taken back. */
+function myJoys() {
+  try {
+    const saved = JSON.parse(store.get('wishlist-joined')) || {};
+    return Array.isArray(saved) ? Object.fromEntries(saved.map(id => [id, 1])) : saved;
+  } catch { return {}; }
+}
+
+const quantities = {};
+function stepper(item) {
+  const value = () => quantities[item.id] || 1;
+  const shown = el('span', { class: 'qty-value', textContent: value() });
+  const change = by => {
+    quantities[item.id] = Math.min(MAX_QUANTITY, Math.max(1, value() + by));
+    sync();
+  };
+  const less = el('button', { type: 'button', class: 'qty-less', textContent: '−', ariaLabel: t('qtyLess'), onclick: () => change(-1) });
+  const more = el('button', { type: 'button', class: 'qty-more', textContent: '+', ariaLabel: t('qtyMore'), onclick: () => change(1) });
+  const sync = () => {
+    shown.textContent = value();
+    less.disabled = value() <= 1;
+    more.disabled = value() >= MAX_QUANTITY;
+  };
+  sync();
+  const box = el('div', { class: 'stepper', role: 'group', ariaLabel: t('qty') }, less, shown, more);
+  return box;
 }
 
 function card(item, archive) {
@@ -768,7 +816,9 @@ function card(item, archive) {
   if (item.specific && item.options) {
     main.append(el('p', { class: 'options' }, el('b', { textContent: t('optionsLabel') + ' ' }), item.options));
   }
-  if (joy && item.joined > 0 && !archive) main.append(el('p', { class: 'options', textContent: `${t('joinCount')} ${item.joined}` }));
+  if (joy && item.joined > 0 && !archive) main.append(el('p', { class: 'options', textContent: `${t('joinCount')} ${item.joined}×` }));
+  const mine = joy && !archive ? myJoys()[item.id] || 0 : 0;
+  if (mine) main.append(el('button', { type: 'button', class: 'undo', textContent: `${t('undo')} (${mine})`, onclick: e => undoJoy(item, e.currentTarget) }));
   const tag = el('article', { class: 'tag' }, box, main);
 
   const link = safeLink
@@ -777,14 +827,13 @@ function card(item, archive) {
 
   if (bought) {
     main.append(el('div', { class: 'stamp', textContent: joy
-      ? `${t('joinCount')} ${item.joined} · ${fmtDate(item.bought)}`
+      ? `${t('joinCount')} ${item.joined}× · ${fmtDate(item.bought)}`
       : `${t('boughtOn')} ${fmtDate(item.bought)}` }));
     if (link) main.append(link);
   } else {
-    const mine = joy && joinedIds().includes(item.id);
-    tag.append(el('div', { class: 'actions' }, link,
-      el('button', { type: 'button', class: 'btn tick' + (mine ? ' done' : ''), textContent: t(joy ? (mine ? 'joined' : 'join') : 'tick'),
-        onclick: e => joy ? toggleJoin(item, e.currentTarget) : openBuy(item) })));
+    tag.append(el('div', { class: joy ? 'actions joy-actions' : 'actions' }, link, joy ? stepper(item) : null,
+      el('button', { type: 'button', class: 'btn tick', textContent: t('tick'),
+        onclick: e => joy ? confirmJoy(item, e.currentTarget) : openBuy(item) })));
   }
 
   if (state.owner) {
@@ -846,7 +895,7 @@ function render() {
   $('demoNotice').textContent = t('demo');
   $('demoNotice').hidden = !!API_URL;
   $('oldBackend').textContent = t('oldBackend');
-  $('oldBackend').hidden = !(API_URL && state.owner && state.items.some(item => item.kind === undefined));
+  $('oldBackend').hidden = !(API_URL && state.owner && state.backend !== 3);
 
   document.querySelectorAll('[data-t]').forEach(node => { node.textContent = t(node.dataset.t); });
   document.querySelectorAll('[data-ph]').forEach(node => { node.placeholder = t(node.dataset.ph); });
@@ -1063,14 +1112,30 @@ async function restore(item, button) {
   });
 }
 
-async function toggleJoin(item, button) {
+async function confirmJoy(item, button) {
   await busy(button, async () => {
-    const ids = joinedIds(), mine = ids.includes(item.id);
+    const quantity = quantities[item.id] || 1;
     try {
-      const data = await call(mine ? 'leave' : 'join', { id: item.id });
-      store.set('wishlist-joined', JSON.stringify(mine ? ids.filter(id => id !== item.id) : [...ids, item.id]));
+      const data = await call('join', { id: item.id, quantity });
+      const mine = myJoys();
+      mine[item.id] = (mine[item.id] || 0) + quantity;
+      store.set('wishlist-joined', JSON.stringify(mine));
+      delete quantities[item.id];
       apply(data);
-      toast(t(mine ? 'tLeft' : 'tJoined'));
+      toast(t('tJoined'));
+    } catch (err) { toast(errorText(err)); }
+  });
+}
+
+async function undoJoy(item, button) {
+  await busy(button, async () => {
+    const mine = myJoys();
+    try {
+      const data = await call('leave', { id: item.id, quantity: mine[item.id] || 1 });
+      delete mine[item.id];
+      store.set('wishlist-joined', JSON.stringify(mine));
+      apply(data);
+      toast(t('tLeft'));
     } catch (err) { toast(errorText(err)); }
   });
 }
