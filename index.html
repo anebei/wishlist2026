@@ -130,7 +130,7 @@ main.wrap { padding-top: calc(var(--bow-w) * .45 - 12px); }
 .btn[disabled] { opacity: .6; cursor: progress; }
 
 /* Gift tags */
-#list { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 16px; }
+.giftlist { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 16px; }
 .item { filter: drop-shadow(0 3px 7px var(--shadow)); min-width: 0; }
 .tag {
   position: relative; background: var(--paper); padding: 16px 16px 14px 48px;
@@ -162,6 +162,7 @@ h2 { font: 700 1.3rem/1.2 var(--display); margin: 0; overflow-wrap: anywhere; }
 .actions { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
 .shop { font-weight: 600; margin-right: auto; overflow-wrap: anywhere; }
 .tick { padding-left: 11px; margin-left: auto; }
+.tick.done::before { background: var(--berry); box-shadow: inset 0 0 0 3px var(--paper); }
 .tick::before {
   content: ""; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--berry); flex: none;
 }
@@ -173,6 +174,11 @@ h2 { font: 700 1.3rem/1.2 var(--display); margin: 0; overflow-wrap: anywhere; }
 .status { margin-top: 28px; text-align: center; color: var(--muted); }
 .status h2 { color: var(--ink); margin-bottom: 4px; }
 .status .btn { margin-top: 12px; }
+
+.joys { margin-top: 40px; padding-top: 22px; border-top: 2px dashed var(--line); }
+.joys-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; }
+.joys-head h2 { font-size: 1.7rem; }
+.joys-lede { margin: 6px 0 0; color: var(--muted); max-width: 40em; }
 
 footer { margin-top: 36px; padding-block: 8px 28px; text-align: center; }
 
@@ -332,8 +338,16 @@ input[type="text"], input[type="password"], select {
       <button type="button" class="btn quiet" id="filterReset" data-t="filterReset"></button>
     </div>
   </section>
-  <ul id="list"></ul>
+  <ul id="list" class="giftlist"></ul>
   <div class="status" id="status" aria-live="polite"></div>
+  <section class="joys" id="joys" hidden>
+    <div class="joys-head">
+      <h2 data-t="joyTitle"></h2>
+      <button type="button" class="btn" id="addJoyBtn" data-t="addJoy" hidden></button>
+    </div>
+    <p class="joys-lede" data-t="joyLede"></p>
+    <ul id="joyList" class="giftlist"></ul>
+  </section>
 </main>
 
 <footer class="wrap">
@@ -386,10 +400,10 @@ input[type="text"], input[type="password"], select {
   <form id="itemForm">
     <h2 id="formTitle"></h2>
     <div class="field">
-      <label for="fName" data-t="wishName"></label>
+      <label for="fName" id="fNameLabel"></label>
       <input type="text" id="fName" maxlength="200" required>
     </div>
-    <label class="switch">
+    <label class="switch" id="fSpecificRow">
       <input type="checkbox" id="fSpecific">
       <span class="track"></span>
       <span><span data-t="specific"></span><small data-t="specificHint"></small></span>
@@ -400,23 +414,23 @@ input[type="text"], input[type="password"], select {
         <input type="text" inputmode="url" id="fLink" maxlength="2000" placeholder="https://" autocapitalize="none" spellcheck="false">
       </div>
       <div class="field">
-        <label for="fImage" data-t="image"></label>
-        <div class="imgrow">
-          <div class="thumb empty" id="fThumb"></div>
-          <div class="imgside">
-            <small id="imgStatus" aria-live="polite"></small>
-            <input type="text" inputmode="url" id="fImage" maxlength="2000" data-ph="imagePh" autocapitalize="none" spellcheck="false">
-            <button type="button" class="btn quiet" id="imgFind" data-t="imgAgain"></button>
-          </div>
-        </div>
-      </div>
-      <div class="field">
         <label for="fPrice" data-t="price"></label>
         <input type="text" id="fPrice" maxlength="60" data-ph="pricePh">
       </div>
       <div class="field">
         <label for="fOptions" data-t="options"></label>
         <input type="text" id="fOptions" maxlength="500" data-ph="optionsPh">
+      </div>
+    </div>
+    <div class="field">
+      <label for="fImage" data-t="image"></label>
+      <div class="imgrow">
+        <div class="thumb empty" id="fThumb"></div>
+        <div class="imgside">
+          <small id="imgStatus" aria-live="polite"></small>
+          <input type="text" inputmode="url" id="fImage" maxlength="2000" data-ph="imagePh" autocapitalize="none" spellcheck="false">
+          <button type="button" class="btn quiet" id="imgFind" data-t="imgAgain"></button>
+        </div>
       </div>
     </div>
     <p class="error" id="formError" hidden></p>
@@ -458,6 +472,12 @@ const T = {
     type: 'Typ přání', typeAll: 'Všechno', typeSpecific: 'Konkrétní produkty', typeAny: 'Nekonkrétní přání',
     priceMin: 'Cena od (Kč)', priceMax: 'Cena do (Kč)', filterReset: 'Zrušit filtry',
     noMatch: 'Tomuto rozmezí teď nic neodpovídá', noMatchBody: 'Zkuste upravit filtry. Při zadané ceně se zobrazují jen přání, která mají cenu - ta bez ní nejsou vidět.',
+    joyTitle: 'Malé radosti', joyLede: 'Drobnosti do 500 Kč, které může splnit kdokoli. Může se přidat i víc lidí.', joyPrice: 'do 500 Kč',
+    addJoy: 'Přidat malou radost', newJoy: 'Nová malá radost', editJoy: 'Upravit malou radost', joyName: 'Co by mě potěšilo',
+    join: 'Přidám se', joined: 'Přidali jste se. Zrušit', joinCount: 'Počet dárců:', restoreJoy: 'Vynulovat počet',
+    tJoined: 'Díky, že se přidáváte.', tLeft: 'Zrušeno', tJoyReset: 'Počet je vynulovaný',
+    imgIdleIdea: 'Vložte odkaz na obrázek nebo na stránku, kde je.',
+    emptyWishes: 'Všechna přání už jsou splněná', emptyWishesBody: 'Pořád se můžete přidat k některé z malých radostí.',
     emptyBought: 'Zatím nebylo splněno nic.', emptyBoughtBody: 'Splněná přání se objeví tady.',
     tBought: 'Hotovo. Děkujeme, že plníte přání. Přání zmizelo ze seznamu.', tSaved: 'Uloženo', tRemoved: 'Smazáno', tRestored: 'Přání je zpět v seznamu', tSignedOut: 'Odhlášeno',
     e_bad_login: 'Jméno nebo heslo nesedí.', e_locked: 'Příliš mnoho pokusů. Zkuste to za 15 minut.',
@@ -510,6 +530,7 @@ function demoLoad() {
       { id: 'd1', name: 'Proutěný košík', specific: false, link: '', price: '', options: '', status: 'open', added: day(9), bought: '' },
       { id: 'd2', name: 'Ukázka: stolní lampa', specific: true, link: 'https://example.com/lamp', price: '1 290 Kč', options: 'matná černá', status: 'open', added: day(6), bought: '' },
       { id: 'd3', name: 'Ukázka: lněná zástěra', specific: true, link: '', price: '640 Kč', options: 'šalvějová, velikost M', status: 'open', added: day(4), bought: '' },
+      { id: 'd5', name: 'Ukázka: balíček dobrot', kind: 'joy', joined: 0, specific: false, link: '', price: '', options: '', status: 'open', added: day(3), bought: '', image: '' },
       { id: 'd4', name: 'Ukázka: kniha o zahradě', specific: false, link: '', price: '', options: '', status: 'bought', added: day(20), bought: day(2) }
     ];
   }
@@ -527,7 +548,7 @@ function demo(action, req) {
     const name = (raw.name || '').trim();
     if (!name) throw new Error('bad_input');
     const on = raw.specific === true;
-    return { name, specific: on, link: on ? normalizeLink(raw.link) : '', price: on ? raw.price.trim() : '', options: on ? raw.options.trim() : '', image: on ? normalizeLink(raw.image) : '' };
+    return { name, specific: on, link: on ? normalizeLink(raw.link) : '', price: on ? raw.price.trim() : '', options: on ? raw.options.trim() : '', image: normalizeLink(raw.image) };
   };
   const reply = extra => {
     store.set('wishlist-demo', JSON.stringify(items));
@@ -543,16 +564,24 @@ function demo(action, req) {
     case 'logout': return { ok: true, owner: false, items: items.filter(i => i.status === 'open') };
     case 'buy': {
       const item = find(req.id);
+      if (item.kind === 'joy') throw new Error('bad_input');
       if (item.status === 'bought') throw new Error('already_bought');
       item.status = 'bought'; item.bought = new Date().toISOString();
       return reply();
     }
+    case 'join': case 'leave': {
+      const item = find(req.id);
+      if (item.kind !== 'joy') throw new Error('bad_input');
+      item.joined = Math.max(0, (item.joined || 0) + (action === 'join' ? 1 : -1));
+      item.bought = item.joined ? new Date().toISOString() : '';
+      return reply();
+    }
     case 'add':
-      items.push({ id: 'd' + Date.now(), ...clean(req.item), status: 'open', added: new Date().toISOString(), bought: '' });
+      items.push({ id: 'd' + Date.now(), ...clean(req.item), kind: req.item.kind === 'joy' ? 'joy' : 'wish', joined: 0, status: 'open', added: new Date().toISOString(), bought: '' });
       return reply();
     case 'update': Object.assign(find(req.id), clean(req.item)); return reply();
     case 'remove': find(req.id); items.splice(items.findIndex(i => i.id === req.id), 1); return reply();
-    case 'restore': { const item = find(req.id); item.status = 'open'; item.bought = ''; return reply(); }
+    case 'restore': { const item = find(req.id); item.status = 'open'; item.bought = ''; item.joined = 0; return reply(); }
     default: throw new Error('bad_input');
   }
 }
@@ -703,23 +732,30 @@ function setThumb(box, src, alt, onFail) {
   box.append(img);
 }
 
-function card(item) {
-  const bought = item.status === 'bought';
+function joinedIds() {
+  try { return JSON.parse(store.get('wishlist-joined')) || []; } catch { return []; }
+}
+
+function card(item, archive) {
+  const joy = item.kind === 'joy';
+  const bought = item.status === 'bought' || archive;
   const safeLink = item.specific && /^https?:\/\//i.test(item.link) ? item.link : '';
   const box = safeLink
     ? el('a', { class: 'thumb', href: safeLink, target: '_blank', rel: 'noopener noreferrer', tabIndex: -1 })
     : el('div', { class: 'thumb' });
-  setThumb(box, item.specific ? item.image : '', item.name);
+  setThumb(box, item.image, item.name);
 
   const main = el('div', { class: 'tag-main' },
     el('div', { class: 'tag-head' },
       el('div', { class: 'tag-title' },
         el('h2', { textContent: item.name }),
-        !item.specific ? el('p', { class: 'anykind', textContent: t('anyKind') }) : null),
-      item.specific && item.price ? el('div', { class: 'price', textContent: item.price }) : null));
+        !item.specific && !joy ? el('p', { class: 'anykind', textContent: t('anyKind') }) : null),
+      joy ? el('div', { class: 'price', textContent: t('joyPrice') })
+        : item.specific && item.price ? el('div', { class: 'price', textContent: item.price }) : null));
   if (item.specific && item.options) {
     main.append(el('p', { class: 'options' }, el('b', { textContent: t('optionsLabel') + ' ' }), item.options));
   }
+  if (joy && item.joined > 0 && !archive) main.append(el('p', { class: 'options', textContent: `${t('joinCount')} ${item.joined}` }));
   const tag = el('article', { class: 'tag' }, box, main);
 
   const link = safeLink
@@ -727,17 +763,21 @@ function card(item) {
     : null;
 
   if (bought) {
-    main.append(el('div', { class: 'stamp', textContent: `${t('boughtOn')} ${fmtDate(item.bought)}` }));
+    main.append(el('div', { class: 'stamp', textContent: joy
+      ? `${t('joinCount')} ${item.joined} · ${fmtDate(item.bought)}`
+      : `${t('boughtOn')} ${fmtDate(item.bought)}` }));
     if (link) main.append(link);
   } else {
+    const mine = joy && joinedIds().includes(item.id);
     tag.append(el('div', { class: 'actions' }, link,
-      el('button', { type: 'button', class: 'btn tick', textContent: t('tick'), onclick: () => openBuy(item) })));
+      el('button', { type: 'button', class: 'btn tick' + (mine ? ' done' : ''), textContent: t(joy ? (mine ? 'joined' : 'join') : 'tick'),
+        onclick: e => joy ? toggleJoin(item, e.currentTarget) : openBuy(item) })));
   }
 
   if (state.owner) {
     tag.append(el('div', { class: 'owner-actions' },
       bought
-        ? el('button', { type: 'button', class: 'btn quiet', textContent: t('restore'), onclick: e => restore(item, e.currentTarget) })
+        ? el('button', { type: 'button', class: 'btn quiet', textContent: t(joy ? 'restoreJoy' : 'restore'), onclick: e => restore(item, e.currentTarget) })
         : el('button', { type: 'button', class: 'btn quiet', textContent: t('edit'), onclick: () => openForm(item) }),
       el('button', { type: 'button', class: 'btn quiet', textContent: t('remove'), onclick: () => openDelete(item) })));
   }
@@ -796,12 +836,13 @@ function render() {
   document.querySelectorAll('[data-t]').forEach(node => { node.textContent = t(node.dataset.t); });
   document.querySelectorAll('[data-ph]').forEach(node => { node.placeholder = t(node.dataset.ph); });
 
-  const open = state.items.filter(item => item.status !== 'bought');
-  const bought = state.items.filter(item => item.status === 'bought')
+  const open = state.items.filter(item => item.kind !== 'joy' && item.status !== 'bought');
+  const joys = state.items.filter(item => item.kind === 'joy');
+  const bought = state.items.filter(item => item.status === 'bought' || (item.kind === 'joy' && item.joined > 0))
     .sort((a, b) => String(b.bought).localeCompare(String(a.bought)));
 
   $('ownerBar').hidden = !state.owner;
-  $('tabOpen').textContent = `${t('tabOpen')} (${open.length})`;
+  $('tabOpen').textContent = `${t('tabOpen')} (${open.length + joys.length})`;
   $('tabBought').textContent = `${t('tabBought')} (${bought.length})`;
   $('tabOpen').setAttribute('aria-selected', String(state.tab === 'open'));
   $('tabBought').setAttribute('aria-selected', String(state.tab === 'bought'));
@@ -817,7 +858,10 @@ function render() {
   $('filters').hidden = onBoughtTab || !open.length;
   $('filtersFoot').hidden = !filtering;
   $('filterCount').textContent = `Zobrazeno ${shown.length} z ${open.length}`;
-  $('list').replaceChildren(...shown.map(card));
+  $('list').replaceChildren(...shown.map(item => card(item, onBoughtTab)));
+  $('joyList').replaceChildren(...joys.map(item => card(item)));
+  $('joys').hidden = onBoughtTab || !state.loaded || (!joys.length && !state.owner);
+  $('addJoyBtn').hidden = !state.owner;
 
   let block = null;
   if (state.failed) block = statusBlock(state.failedText, '', true);
@@ -825,6 +869,7 @@ function render() {
   else if (!shown.length && !onBoughtTab && open.length) block = statusBlock(t('noMatch'), t('noMatchBody'));
   else if (!shown.length && state.tab === 'bought') block = statusBlock(t('emptyBought'), t('emptyBoughtBody'));
   else if (!shown.length && state.owner) block = statusBlock(t('emptyOwner'), t('emptyOwnerBody'));
+  else if (!shown.length && joys.length) block = statusBlock(t('emptyWishes'), t('emptyWishesBody'));
   else if (!shown.length) block = statusBlock(t('emptyGuest'), t('emptyGuestBody'));
   $('status').replaceChildren(...(block ? [block] : []));
 }
@@ -998,8 +1043,20 @@ $('delConfirm').addEventListener('click', e => busy(e.currentTarget, async () =>
 
 async function restore(item, button) {
   await busy(button, async () => {
-    try { apply(await call('restore', { id: item.id })); toast(t('tRestored')); }
+    try { apply(await call('restore', { id: item.id })); toast(t(item.kind === 'joy' ? 'tJoyReset' : 'tRestored')); }
     catch (err) { toast(errorText(err)); if (err.message === 'session_expired') expire(); }
+  });
+}
+
+async function toggleJoin(item, button) {
+  await busy(button, async () => {
+    const ids = joinedIds(), mine = ids.includes(item.id);
+    try {
+      const data = await call(mine ? 'leave' : 'join', { id: item.id });
+      store.set('wishlist-joined', JSON.stringify(mine ? ids.filter(id => id !== item.id) : [...ids, item.id]));
+      apply(data);
+      toast(t(mine ? 'tLeft' : 'tJoined'));
+    } catch (err) { toast(errorText(err)); }
   });
 }
 
@@ -1009,8 +1066,18 @@ function expire() {
   refresh();
 }
 
-function syncDetails() { $('fDetails').hidden = !$('fSpecific').checked; }
-$('fSpecific').addEventListener('change', () => { syncDetails(); lookup(); });
+function syncDetails() {
+  const joy = state.formKind === 'joy', specific = $('fSpecific').checked && !joy;
+  $('fSpecificRow').hidden = joy;
+  $('fDetails').hidden = !specific;
+  $('imgFind').hidden = !specific;
+}
+const imageHint = () => $('fSpecific').checked ? 'imgIdle' : 'imgIdleIdea';
+$('fSpecific').addEventListener('change', () => {
+  syncDetails();
+  if ($('fSpecific').checked) lookup();
+  if (!$('fImage').value) $('imgStatus').textContent = t(imageHint());
+});
 
 let lookupRun = 0, lookupPending = null, lookedUp = '', imageManual = false;
 
@@ -1019,7 +1086,24 @@ function showFormImage(src, statusKey) {
   setThumb($('fThumb'), src, $('fName').value, () => {
     if (!imageManual) $('fImage').value = '';
     $('imgStatus').textContent = t('imgBroken');
+    // A link that isn't a picture may be a page with one on it.
+    if (imageManual) setTimeout(() => {
+      if (normalizeLink($('fImage').value) === src) imageFromPage(src);
+    }, 500);
   });
+}
+
+function imageFromPage(page) {
+  const run = ++lookupRun;
+  $('imgStatus').textContent = t('imgSearching');
+  lookupPending = findImage(page).then(image => {
+    if (run !== lookupRun) return;
+    lookupPending = null;
+    if (!image) { $('imgStatus').textContent = t('imgBroken'); return; }
+    $('fImage').value = image;
+    showFormImage(image, 'imgFound');
+  });
+  return lookupPending;
 }
 
 function lookup(force) {
@@ -1029,7 +1113,7 @@ function lookup(force) {
   if (!link) {
     lookupRun++; lookedUp = ''; lookupPending = null;
     $('fImage').value = '';
-    showFormImage('', 'imgIdle');
+    showFormImage('', imageHint());
     return null;
   }
   if (link === lookedUp && force !== true) return lookupPending;
@@ -1058,41 +1142,50 @@ $('fImage').addEventListener('input', () => {
   lookupRun++;
   lookupPending = null;
   $('imgFind').disabled = false;
-  showFormImage(src, src ? '' : 'imgIdle');
+  showFormImage(src, src ? '' : imageHint());
 });
 
-function openForm(item) {
+function openForm(item, kind) {
   state.target = item || null;
-  $('formTitle').textContent = t(item ? 'editWish' : 'newWish');
+  state.formKind = item ? (item.kind || 'wish') : (kind || 'wish');
+  const joy = state.formKind === 'joy';
+  $('formTitle').textContent = t(joy ? (item ? 'editJoy' : 'newJoy') : (item ? 'editWish' : 'newWish'));
+  $('fNameLabel').textContent = t(joy ? 'joyName' : 'wishName');
   $('fName').value = item ? item.name : '';
   $('fSpecific').checked = !!(item && item.specific);
   $('fLink').value = item ? item.link : '';
   $('fPrice').value = item ? item.price : '';
   $('fOptions').value = item ? item.options : '';
   $('fImage').value = (item && item.image) || '';
-  imageManual = false; lookupRun++; lookupPending = null;
+  imageManual = !!(item && item.image && !(item.specific && item.link)); lookupRun++; lookupPending = null;
   lookedUp = (item && item.image) ? item.link : '';
   $('imgFind').disabled = false;
   syncDetails();
-  showFormImage($('fImage').value, 'imgIdle');
+  showFormImage($('fImage').value, imageHint());
   showError('formError');
   $('formDlg').showModal();
   if (item && item.specific && item.link && !item.image) lookup();
 }
 $('addBtn').addEventListener('click', () => openForm(null));
+$('addJoyBtn').addEventListener('click', () => openForm(null, 'joy'));
 
 $('itemForm').addEventListener('submit', e => {
   e.preventDefault();
   busy($('formSave'), async () => {
     await lookup();
-    const specific = $('fSpecific').checked;
+    if (imageManual && !$('fThumb').querySelector('img')) {
+      const page = normalizeLink($('fImage').value);
+      if (page) await (lookupPending || imageFromPage(page));
+    }
+    const specific = $('fSpecific').checked && state.formKind !== 'joy';
     const item = {
       name: $('fName').value,
+      kind: state.formKind,
       specific,
       link: specific ? normalizeLink($('fLink').value) : '',
       price: specific ? $('fPrice').value : '',
       options: specific ? $('fOptions').value : '',
-      image: specific ? normalizeLink($('fImage').value) : ''
+      image: normalizeLink($('fImage').value)
     };
     try {
       const data = state.target
