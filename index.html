@@ -438,7 +438,7 @@ input[type="text"], input[type="password"], select {
         <input type="text" inputmode="url" id="fLink" maxlength="2000" placeholder="https://" autocapitalize="none" spellcheck="false">
       </div>
       <div class="field">
-        <label for="fPrice" data-t="price"></label>
+        <label for="fPrice" data-t="price" id="fPriceLabel"></label>
         <input type="text" id="fPrice" maxlength="60" data-ph="pricePh">
       </div>
       <div class="field">
@@ -575,8 +575,8 @@ function demo(action, req) {
   const clean = raw => {
     const name = (raw.name || '').trim();
     if (!name) throw new Error('bad_input');
-    const on = raw.specific === true;
-    return { name, specific: on, link: on ? normalizeLink(raw.link) : '', price: on ? raw.price.trim() : '', options: on ? raw.options.trim() : '', image: normalizeImage(raw.image) };
+    const on = raw.specific === true, more = on || raw.kind === 'joy';
+    return { name, specific: on, link: more ? normalizeLink(raw.link) : '', price: on ? raw.price.trim() : '', options: more ? raw.options.trim() : '', image: normalizeImage(raw.image) };
   };
   const reply = extra => {
     store.set('wishlist-demo', JSON.stringify(items));
@@ -802,7 +802,7 @@ function stepper(item) {
 function card(item, archive) {
   const joy = item.kind === 'joy';
   const bought = item.status === 'bought' || archive;
-  const safeLink = item.specific && /^https?:\/\//i.test(item.link) ? item.link : '';
+  const safeLink = (item.specific || joy) && /^https?:\/\//i.test(item.link) ? item.link : '';
   const box = safeLink
     ? el('a', { class: 'thumb', href: safeLink, target: '_blank', rel: 'noopener noreferrer', tabIndex: -1 })
     : el('div', { class: 'thumb' });
@@ -815,7 +815,7 @@ function card(item, archive) {
         !item.specific && !joy ? el('p', { class: 'anykind', textContent: t('anyKind') }) : null),
       joy ? el('div', { class: 'price', textContent: t('joyPrice') })
         : item.specific && item.price ? el('div', { class: 'price', textContent: item.price }) : null));
-  if (item.specific && item.options) {
+  if ((item.specific || joy) && item.options) {
     main.append(el('p', { class: 'options' }, el('b', { textContent: t('optionsLabel') + ' ' }), item.options));
   }
   if (joy && item.joined > 0 && !archive) main.append(el('p', { class: 'options', textContent: `${t('joinCount')} ${item.joined}×` }));
@@ -897,7 +897,7 @@ function render() {
   $('demoNotice').textContent = t('demo');
   $('demoNotice').hidden = !!API_URL;
   $('oldBackend').textContent = t('oldBackend');
-  $('oldBackend').hidden = !(API_URL && state.owner && state.backend !== 3);
+  $('oldBackend').hidden = !(API_URL && state.owner && state.backend !== 4);
 
   document.querySelectorAll('[data-t]').forEach(node => { node.textContent = t(node.dataset.t); });
   document.querySelectorAll('[data-ph]').forEach(node => { node.placeholder = t(node.dataset.ph); });
@@ -1148,13 +1148,15 @@ function expire() {
   refresh();
 }
 
+const hasDetails = () => state.formKind === 'joy' || $('fSpecific').checked;
 function syncDetails() {
-  const joy = state.formKind === 'joy', specific = $('fSpecific').checked && !joy;
+  const joy = state.formKind === 'joy';
   $('fSpecificRow').hidden = joy;
-  $('fDetails').hidden = !specific;
-  $('imgFind').hidden = !specific;
+  $('fDetails').hidden = !hasDetails();
+  $('fPriceLabel').parentElement.hidden = joy;   // small happinesses all share the price in the section
+  $('imgFind').hidden = !hasDetails();
 }
-const imageHint = () => $('fSpecific').checked ? 'imgIdle' : 'imgIdleIdea';
+const imageHint = () => hasDetails() ? 'imgIdle' : 'imgIdleIdea';
 $('fSpecific').addEventListener('change', () => {
   syncDetails();
   if ($('fSpecific').checked) lookup();
@@ -1203,7 +1205,7 @@ function imageFromPage(page) {
 function lookup(force) {
   const link = normalizeLink($('fLink').value);
   if (force === true) imageManual = false;
-  if (imageManual || !$('fSpecific').checked) return lookupPending;
+  if (imageManual || !hasDetails()) return lookupPending;
   if (!link) {
     lookupRun++; lookedUp = ''; lookupPending = null;
     $('fImage').value = '';
@@ -1252,14 +1254,14 @@ function openForm(item, kind) {
   $('fPrice').value = item ? item.price : '';
   $('fOptions').value = item ? item.options : '';
   $('fImage').value = (item && item.image) || '';
-  imageManual = !!(item && item.image && !(item.specific && item.link)); lookupRun++; lookupPending = null;
+  imageManual = !!(item && item.image && !((item.specific || joy) && item.link)); lookupRun++; lookupPending = null;
   lookedUp = (item && item.image) ? item.link : '';
   $('imgFind').disabled = false;
   syncDetails();
   showFormImage($('fImage').value, imageHint());
   showError('formError');
   $('formDlg').showModal();
-  if (item && item.specific && item.link && !item.image) lookup();
+  if (item && (item.specific || joy) && item.link && !item.image) lookup();
 }
 $('addBtn').addEventListener('click', () => openForm(null));
 $('addJoyBtn').addEventListener('click', () => openForm(null, 'joy'));
@@ -1282,9 +1284,9 @@ $('itemForm').addEventListener('submit', e => {
       name: $('fName').value,
       kind: state.formKind,
       specific,
-      link: specific ? normalizeLink($('fLink').value) : '',
+      link: hasDetails() ? normalizeLink($('fLink').value) : '',
       price: specific ? $('fPrice').value : '',
-      options: specific ? $('fOptions').value : '',
+      options: hasDetails() ? $('fOptions').value : '',
       image: normalizeImage($('fImage').value)
     };
     try {
