@@ -17,6 +17,9 @@
   --shadow: rgba(66, 28, 70, .16); --photo: #FFFFFF;
   --display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
   --body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --gold-shade: #C98F26; --gold-light: #F4CE74; --gold-deep: #A9761A; --puff-1: #FFFFFF; --puff-2: #D8C9E0;
+  --ribbon-right: clamp(28px, calc(21vw - 60px), 200px);
+  --bow-w: clamp(72px, 14vw, 140px);
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -26,6 +29,7 @@
     --band: #5C1536; --band-2: #691B3F; --on-band: #FFF0EA;
     --ok-bg: #203A29; --ok-ink: #B5E3C2; --warn-bg: #43361A; --warn-ink: #F3D993;
     --shadow: rgba(0, 0, 0, .4); --photo: #FFFFFF;
+    --puff-1: #9C8CA6; --puff-2: #5E4F69;
     color-scheme: dark;
   }
 }
@@ -35,6 +39,7 @@
   --band: #5C1536; --band-2: #691B3F; --on-band: #FFF0EA;
   --ok-bg: #203A29; --ok-ink: #B5E3C2; --warn-bg: #43361A; --warn-ink: #F3D993;
   --shadow: rgba(0, 0, 0, .4); --photo: #FFFFFF;
+  --puff-1: #9C8CA6; --puff-2: #5E4F69;
   color-scheme: dark;
 }
 
@@ -50,7 +55,7 @@ a { color: var(--berry); }
 :focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 
 .wrap {
-  width: 100%; max-width: 720px; margin-inline: auto;
+  width: 100%; max-width: 860px; margin-inline: auto;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
 }
@@ -61,16 +66,27 @@ a { color: var(--berry); }
   background: repeating-linear-gradient(135deg, var(--band) 0 16px, var(--band-2) 16px 32px);
   border-bottom: 7px solid var(--gold);
 }
+.bandwrap { position: relative; z-index: 5; }
 .band::after {
-  content: ""; position: absolute; top: 0; bottom: 0; right: clamp(24px, 12vw, 120px);
-  width: 20px; background: var(--gold); opacity: .92;
+  content: ""; position: absolute; top: 0; bottom: 0; right: var(--ribbon-right);
+  width: 20px; background: var(--gold);
 }
 .band .wrap { position: relative; z-index: 1; padding-block: 34px 30px; }
-h1 {
-  font: 700 clamp(2.1rem, 7vw, 3.4rem)/1.05 var(--display); letter-spacing: -.02em;
-  margin: 0 0 8px; max-width: 15em; padding-right: calc(clamp(24px, 12vw, 120px) + 12px); text-wrap: balance;
+h1 { font: 700 min(3.4rem, max(min(6.5vw, 1.55rem), 5.2vw))/1.08 var(--display); letter-spacing: -.02em; margin: 0 0 10px; }
+.title-line { display: block; }
+.lede { margin: 0; max-width: min(34em, calc(100% - var(--ribbon-right) - var(--bow-w) / 2 + 6px)); }
+
+/* The bow sits on the point where the two ribbons cross. Its tails hang over the page. */
+.bow {
+  position: absolute; display: block; width: var(--bow-w); aspect-ratio: 200 / 180; pointer-events: none;
+  top: calc(100% - var(--bow-w) * .45 - 3px); right: calc(var(--ribbon-right) + 10px - var(--bow-w) / 2);
+  filter: drop-shadow(0 3px 4px var(--shadow));
 }
-.lede { margin: 0; max-width: 34em; padding-right: calc(clamp(24px, 12vw, 120px) + 12px); }
+.bow-gold { fill: var(--gold); }
+.bow-shade { fill: var(--gold-shade); }
+.bow-light { fill: var(--gold-light); }
+.bow-deep { fill: var(--gold-deep); }
+main.wrap { padding-top: calc(var(--bow-w) * .45 - 12px); }
 
 /* Notices and owner bar */
 .notice {
@@ -130,6 +146,7 @@ h1 {
 .thumb.empty::before, .thumb.empty::after { content: ""; position: absolute; background: var(--gold); }
 .thumb.empty::before { left: 50%; top: 0; bottom: 0; width: 10px; margin-left: -5px; }
 .thumb.empty::after { top: 50%; left: 0; right: 0; height: 10px; margin-top: -5px; }
+.thumb-bow { position: absolute; left: 50%; top: 50%; width: 68%; aspect-ratio: 200 / 180; transform: translate(-50%, -50%); }
 .tag-main { min-width: 0; display: grid; gap: 8px; }
 .tag::before {
   content: ""; position: absolute; left: 16px; top: 50%; width: 14px; height: 14px; margin-top: -7px;
@@ -206,6 +223,20 @@ input[type="text"], input[type="password"], select {
   width: max-content; max-width: calc(100vw - 32px); z-index: 20;
   padding: 10px 16px; border-radius: 9px; background: var(--ink); color: var(--bg); font-weight: 500;
 }
+/* Gift wrapping when something is bought */
+.fx-layer { position: fixed; inset: 0; z-index: 30; overflow: hidden; pointer-events: none; }
+.fx-box { position: absolute; }
+.fx-paper { background: repeating-linear-gradient(135deg, var(--band) 0 16px, var(--band-2) 16px 32px); }
+.fx-flap { position: absolute; left: 0; right: 0; height: 53%; opacity: 0; box-shadow: 0 0 9px var(--shadow); }
+.fx-flap.top { top: 0; transform-origin: top; }
+.fx-flap.bottom { bottom: 0; transform-origin: bottom; }
+.fx-rib { position: absolute; background: var(--gold); transform: scale(0); }
+.fx-rib.v { left: 50%; top: 0; bottom: 0; width: 18px; margin-left: -9px; }
+.fx-rib.h { top: 50%; left: 0; right: 0; height: 18px; margin-top: -9px; }
+.fx-bow { position: absolute; left: 50%; top: 50%; width: 92%; aspect-ratio: 200 / 180; opacity: 0; filter: drop-shadow(0 3px 3px var(--shadow)); }
+.fx-puff, .fx-spark { position: absolute; border-radius: 50%; opacity: 0; }
+.fx-puff { background: radial-gradient(circle at 35% 30%, var(--puff-1), var(--puff-2)); }
+.fx-spark { background: var(--gold); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 @media (max-width: 620px) {
   .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -220,12 +251,47 @@ input[type="text"], input[type="password"], select {
 </style>
 </head>
 <body>
-<header class="band">
-  <div class="wrap">
-    <h1 id="title"></h1>
-    <p class="lede" id="lede"></p>
-  </div>
-</header>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="bowShape" viewBox="0 0 200 180">
+    <path class="bow-shade" d="M92 110C84 134 70 156 52 176L72 170L82 180C96 158 106 134 106 112Z"/>
+    <path class="bow-shade" d="M108 110C116 134 130 156 148 176L128 170L118 180C104 158 94 134 94 112Z"/>
+    <path class="bow-gold" transform="rotate(0 100 90)" d="M100 90C73 55.8 78.4 14 100 14C121.6 14 127 55.8 100 90Z"/><path class="bow-shade" transform="rotate(0 100 90)" d="M100 58.1C86.5 44.4 88.7 20.1 100 20.1C111.3 20.1 113.5 44.4 100 58.1Z"/>
+    <path class="bow-gold" transform="rotate(32.7 100 90)" d="M100 90C73 55.8 78.4 14 100 14C121.6 14 127 55.8 100 90Z"/><path class="bow-shade" transform="rotate(32.7 100 90)" d="M100 58.1C86.5 44.4 88.7 20.1 100 20.1C111.3 20.1 113.5 44.4 100 58.1Z"/>
+    <path class="bow-gold" transform="rotate(65.5 100 90)" d="M100 90C73 55.8 78.4 14 100 14C121.6 14 127 55.8 100 90Z"/><path class="bow-shade" transform="rotate(65.5 100 90)" d="M100 58.1C86.5 44.4 88.7 20.1 100 20.1C111.3 20.1 113.5 44.4 100 58.1Z"/>
+    <path class="bow-gold" transform="rotate(98.2 100 90)" d="M100 90C73 55.8 78.4 14 100 14C121.6 14 127 55.8 100 90Z"/><path class="bow-shade" transform="rotate(98.2 100 90)" d="M100 58.1C86.5 44.4 88.7 20.1 100 20.1C111.3 20.1 113.5 44.4 100 58.1Z"/>
+    <path class="bow-gold" transform="rotate(130.9 100 90)" d="M100 90C73 55.8 78.4 14 100 14C121.6 14 127 55.8 100 90Z"/><path class="bow-shade" transform="rotate(130.9 100 90)" d="M100 58.1C86.5 44.4 88.7 20.1 100 20.1C111.3 20.1 113.5 44.4 100 58.1Z"/>
+    <path class="bow-gold" transform="rotate(163.6 100 90)" d="M100 90C73 55.8 78.4 14 100 14C121.6 14 127 55.8 100 90Z"/><path class="bow-shade" transform="rotate(163.6 100 90)" d="M100 58.1C86.5 44.4 88.7 20.1 100 20.1C111.3 20.1 113.5 44.4 100 58.1Z"/>
+    <path class="bow-gold" transform="rotate(196.4 100 90)" d="M100 90C73 55.8 78.4 14 100 14C121.6 14 127 55.8 100 90Z"/><path class="bow-shade" transform="rotate(196.4 100 90)" d="M100 58.1C86.5 44.4 88.7 20.1 100 20.1C111.3 20.1 113.5 44.4 100 58.1Z"/>
+    <path class="bow-gold" transform="rotate(229.1 100 90)" d="M100 90C73 55.8 78.4 14 100 14C121.6 14 127 55.8 100 90Z"/><path class="bow-shade" transform="rotate(229.1 100 90)" d="M100 58.1C86.5 44.4 88.7 20.1 100 20.1C111.3 20.1 113.5 44.4 100 58.1Z"/>
+    <path class="bow-gold" transform="rotate(261.8 100 90)" d="M100 90C73 55.8 78.4 14 100 14C121.6 14 127 55.8 100 90Z"/><path class="bow-shade" transform="rotate(261.8 100 90)" d="M100 58.1C86.5 44.4 88.7 20.1 100 20.1C111.3 20.1 113.5 44.4 100 58.1Z"/>
+    <path class="bow-gold" transform="rotate(294.5 100 90)" d="M100 90C73 55.8 78.4 14 100 14C121.6 14 127 55.8 100 90Z"/><path class="bow-shade" transform="rotate(294.5 100 90)" d="M100 58.1C86.5 44.4 88.7 20.1 100 20.1C111.3 20.1 113.5 44.4 100 58.1Z"/>
+    <path class="bow-gold" transform="rotate(327.3 100 90)" d="M100 90C73 55.8 78.4 14 100 14C121.6 14 127 55.8 100 90Z"/><path class="bow-shade" transform="rotate(327.3 100 90)" d="M100 58.1C86.5 44.4 88.7 20.1 100 20.1C111.3 20.1 113.5 44.4 100 58.1Z"/>
+    <path class="bow-light" transform="rotate(18 100 90)" d="M100 90C76 65.7 80.8 36 100 36C119.2 36 124 65.7 100 90Z"/><path class="bow-gold" transform="rotate(18 100 90)" d="M100 67.3C88 57.6 89.9 40.3 100 40.3C110.1 40.3 112 57.6 100 67.3Z"/>
+    <path class="bow-light" transform="rotate(63 100 90)" d="M100 90C76 65.7 80.8 36 100 36C119.2 36 124 65.7 100 90Z"/><path class="bow-gold" transform="rotate(63 100 90)" d="M100 67.3C88 57.6 89.9 40.3 100 40.3C110.1 40.3 112 57.6 100 67.3Z"/>
+    <path class="bow-light" transform="rotate(108 100 90)" d="M100 90C76 65.7 80.8 36 100 36C119.2 36 124 65.7 100 90Z"/><path class="bow-gold" transform="rotate(108 100 90)" d="M100 67.3C88 57.6 89.9 40.3 100 40.3C110.1 40.3 112 57.6 100 67.3Z"/>
+    <path class="bow-light" transform="rotate(153 100 90)" d="M100 90C76 65.7 80.8 36 100 36C119.2 36 124 65.7 100 90Z"/><path class="bow-gold" transform="rotate(153 100 90)" d="M100 67.3C88 57.6 89.9 40.3 100 40.3C110.1 40.3 112 57.6 100 67.3Z"/>
+    <path class="bow-light" transform="rotate(198 100 90)" d="M100 90C76 65.7 80.8 36 100 36C119.2 36 124 65.7 100 90Z"/><path class="bow-gold" transform="rotate(198 100 90)" d="M100 67.3C88 57.6 89.9 40.3 100 40.3C110.1 40.3 112 57.6 100 67.3Z"/>
+    <path class="bow-light" transform="rotate(243 100 90)" d="M100 90C76 65.7 80.8 36 100 36C119.2 36 124 65.7 100 90Z"/><path class="bow-gold" transform="rotate(243 100 90)" d="M100 67.3C88 57.6 89.9 40.3 100 40.3C110.1 40.3 112 57.6 100 67.3Z"/>
+    <path class="bow-light" transform="rotate(288 100 90)" d="M100 90C76 65.7 80.8 36 100 36C119.2 36 124 65.7 100 90Z"/><path class="bow-gold" transform="rotate(288 100 90)" d="M100 67.3C88 57.6 89.9 40.3 100 40.3C110.1 40.3 112 57.6 100 67.3Z"/>
+    <path class="bow-light" transform="rotate(333 100 90)" d="M100 90C76 65.7 80.8 36 100 36C119.2 36 124 65.7 100 90Z"/><path class="bow-gold" transform="rotate(333 100 90)" d="M100 67.3C88 57.6 89.9 40.3 100 40.3C110.1 40.3 112 57.6 100 67.3Z"/>
+    <path class="bow-gold" transform="rotate(6 100 90)" d="M100 90C81 75.6 84.8 58 100 58C115.2 58 119 75.6 100 90Z"/><path class="bow-deep" transform="rotate(6 100 90)" d="M100 76.6C90.5 70.8 92 60.6 100 60.6C108 60.6 109.5 70.8 100 76.6Z"/>
+    <path class="bow-gold" transform="rotate(78 100 90)" d="M100 90C81 75.6 84.8 58 100 58C115.2 58 119 75.6 100 90Z"/><path class="bow-deep" transform="rotate(78 100 90)" d="M100 76.6C90.5 70.8 92 60.6 100 60.6C108 60.6 109.5 70.8 100 76.6Z"/>
+    <path class="bow-gold" transform="rotate(150 100 90)" d="M100 90C81 75.6 84.8 58 100 58C115.2 58 119 75.6 100 90Z"/><path class="bow-deep" transform="rotate(150 100 90)" d="M100 76.6C90.5 70.8 92 60.6 100 60.6C108 60.6 109.5 70.8 100 76.6Z"/>
+    <path class="bow-gold" transform="rotate(222 100 90)" d="M100 90C81 75.6 84.8 58 100 58C115.2 58 119 75.6 100 90Z"/><path class="bow-deep" transform="rotate(222 100 90)" d="M100 76.6C90.5 70.8 92 60.6 100 60.6C108 60.6 109.5 70.8 100 76.6Z"/>
+    <path class="bow-gold" transform="rotate(294 100 90)" d="M100 90C81 75.6 84.8 58 100 58C115.2 58 119 75.6 100 90Z"/><path class="bow-deep" transform="rotate(294 100 90)" d="M100 76.6C90.5 70.8 92 60.6 100 60.6C108 60.6 109.5 70.8 100 76.6Z"/>
+    <circle class="bow-light" cx="100" cy="90" r="11"/>
+  </symbol>
+</svg>
+
+<div class="bandwrap">
+  <header class="band">
+    <div class="wrap">
+      <h1 id="title"></h1>
+      <p class="lede" id="lede"></p>
+    </div>
+  </header>
+  <svg class="bow" id="bow" viewBox="0 0 200 180" aria-hidden="true"><use href="#bowShape"/></svg>
+</div>
 
 <main class="wrap">
   <p class="notice" id="demoNotice" hidden></p>
@@ -366,7 +432,7 @@ input[type="text"], input[type="password"], select {
 <script>
 /* ===== SETTINGS ===== */
 const API_URL = 'https://script.google.com/macros/s/AKfycbyESgq3B2PIrREr8nM5fegFD_gac1kMnKlrmAXmS_SsebF6XgO4CNekNmz9RMb8eNwBHw/exec';
-const LIST_TITLE = 'Seznam vánočních přání Anežky a Filipa 2026';
+const LIST_TITLE = ['Seznam vánočních přání', 'Anežky a Filipa 2026'];   // one entry per line
 /* ========================================== */
 
 const T = {
@@ -580,8 +646,9 @@ function apply(data) {
   render();
 }
 
-let lastSnapshot = '';
+let lastSnapshot = '', fxRunning = false;
 async function refresh({ quiet = false } = {}) {
+  if (quiet && fxRunning) return;
   try {
     const data = await call('list');
     const snapshot = JSON.stringify([data.owner, data.items]);
@@ -614,14 +681,23 @@ function fmtDate(iso) {
   return new Intl.DateTimeFormat('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' }).format(date);
 }
 
+/* Every bow on the page is a copy of the one in the header. */
+function bowCopy(className) {
+  const copy = $('bow').cloneNode(true);
+  copy.removeAttribute('id');
+  copy.setAttribute('class', className);
+  return copy;
+}
+
 function setThumb(box, src, alt, onFail) {
   box.replaceChildren();
   box.classList.toggle('empty', !src);
-  if (!src) return;
+  if (!src) { box.append(bowCopy('thumb-bow')); return; }
   const img = el('img', { src, alt: alt || '', loading: 'lazy', referrerPolicy: 'no-referrer' });
   img.addEventListener('error', () => {
     img.remove();
     box.classList.add('empty');
+    box.append(bowCopy('thumb-bow'));
     if (onFail) onFail();
   });
   box.append(img);
@@ -665,7 +741,9 @@ function card(item) {
         : el('button', { type: 'button', class: 'btn quiet', textContent: t('edit'), onclick: () => openForm(item) }),
       el('button', { type: 'button', class: 'btn quiet', textContent: t('remove'), onclick: () => openDelete(item) })));
   }
-  return el('li', { class: 'item' }, tag);
+  const row = el('li', { class: 'item' }, tag);
+  row.dataset.id = item.id;
+  return row;
 }
 
 /* Reads a number from a price typed as text: 1 290 Kč, 1.290,50 Kč, 690,-, od 500 Kč. */
@@ -709,8 +787,8 @@ function statusBlock(title, body, withRetry) {
 }
 
 function render() {
-  document.title = LIST_TITLE;
-  $('title').textContent = LIST_TITLE;
+  document.title = LIST_TITLE.join(' ');
+  $('title').replaceChildren(...LIST_TITLE.map(line => el('span', { class: 'title-line', textContent: line })));
   $('lede').textContent = t('lede');
   $('demoNotice').textContent = t('demo');
   $('demoNotice').hidden = !!API_URL;
@@ -769,6 +847,112 @@ async function busy(button, work) {
   try { return await work(); } finally { button.disabled = false; }
 }
 
+/* ---------- Gift wrapping ---------- */
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const play = (node, frames, options) =>
+  node.animate(frames, { fill: 'both', easing: 'cubic-bezier(.3, .7, .3, 1)', ...options }).finished.catch(() => {});
+
+async function giftSequence(row, layer) {
+  const rect = row.getBoundingClientRect();
+  const side = Math.round(Math.max(110, Math.min(150, rect.height, rect.width)));
+  const boxLeft = rect.left + (rect.width - side) / 2, boxTop = rect.top + (rect.height - side) / 2;
+
+  const place = (left, top, width, height) => ({ left: left + 'px', top: top + 'px', width: width + 'px', height: height + 'px' });
+  const box = el('div', { class: 'fx-box' });
+  Object.assign(box.style, place(rect.left, rect.top, rect.width, rect.height));
+  const clone = row.firstElementChild.cloneNode(true);
+  const flapTop = el('div', { class: 'fx-flap top fx-paper' });
+  const flapBottom = el('div', { class: 'fx-flap bottom fx-paper' });
+  const ribV = el('div', { class: 'fx-rib v' });
+  const ribH = el('div', { class: 'fx-rib h' });
+  const bow = bowCopy('fx-bow');
+  box.append(clone, flapTop, flapBottom, ribV, ribH, bow);
+  layer.append(box);
+  document.body.append(layer);
+  row.style.visibility = 'hidden';
+
+  // Paper folds over the card from the top and the bottom.
+  const fold = from => [{ opacity: 1, transform: `perspective(900px) rotateX(${from}deg)` }, { opacity: 1, transform: 'perspective(900px) rotateX(0deg)' }];
+  await Promise.all([
+    play(flapTop, fold(-100), { duration: 420 }),
+    play(flapBottom, fold(100), { duration: 420, delay: 140 })
+  ]);
+
+  // The wrapped card closes into a box.
+  box.classList.add('fx-paper');
+  clone.remove(); flapTop.remove(); flapBottom.remove();
+  await play(box, [
+    { ...place(rect.left, rect.top, rect.width, rect.height), borderRadius: '0px' },
+    { ...place(boxLeft, boxTop, side, side), borderRadius: '8px' }
+  ], { duration: 380 });
+
+  // Ribbon, then the bow.
+  await Promise.all([
+    play(ribV, [{ transform: 'scaleY(0)' }, { transform: 'scaleY(1)' }], { duration: 240 }),
+    play(ribH, [{ transform: 'scaleX(0)' }, { transform: 'scaleX(1)' }], { duration: 240, delay: 80 })
+  ]);
+  await play(bow, [
+    { opacity: 0, transform: 'translate(-50%, -50%) scale(.2) rotate(-16deg)' },
+    { opacity: 1, offset: .7, transform: 'translate(-50%, -50%) scale(1.14) rotate(4deg)' },
+    { opacity: 1, transform: 'translate(-50%, -50%) scale(1) rotate(0deg)' }
+  ], { duration: 360 });
+  await sleep(220);
+
+  // Poof.
+  const centerX = boxLeft + side / 2, centerY = boxTop + side / 2;
+  const burst = [];
+  for (let i = 0; i < 14; i++) {
+    const angle = i / 14 * Math.PI * 2, reach = side * (.5 + (i * 7 % 5) * .13), size = side * (.34 + (i * 3 % 4) * .1);
+    const puff = el('div', { class: 'fx-puff' });
+    Object.assign(puff.style, place(centerX - size / 2, centerY - size / 2, size, size));
+    layer.append(puff);
+    const move = `translate(${Math.cos(angle) * reach}px, ${Math.sin(angle) * reach}px)`;
+    burst.push(play(puff, [
+      { opacity: .95, transform: 'scale(.3)' },
+      { opacity: .9, offset: .35, transform: `${move} scale(1)` },
+      { opacity: 0, transform: `${move} scale(1.5)` }
+    ], { duration: 620, delay: i % 3 * 30 }));
+  }
+  for (let i = 0; i < 10; i++) {
+    const angle = (i + .5) / 10 * Math.PI * 2, reach = side * (1 + (i * 3 % 4) * .18);
+    const spark = el('div', { class: 'fx-spark' });
+    Object.assign(spark.style, place(centerX - 4, centerY - 4, 8, 8));
+    layer.append(spark);
+    burst.push(play(spark, [
+      { opacity: 1, transform: 'translate(0, 0) scale(1)' },
+      { opacity: 0, transform: `translate(${Math.cos(angle) * reach}px, ${Math.sin(angle) * reach}px) scale(.3)` }
+    ], { duration: 560 }));
+  }
+  burst.push(play(box, [
+    { opacity: 1, transform: 'scale(1)' },
+    { opacity: 1, offset: .4, transform: 'scale(1.14)' },
+    { opacity: 0, transform: 'scale(.15)' }
+  ], { duration: 280, composite: 'replace' }));
+  await Promise.all(burst);
+
+  // The list closes the gap.
+  await play(row, [
+    { height: rect.height + 'px', marginBottom: '0px' },
+    { height: '0px', marginBottom: '-16px' }
+  ], { duration: 240 });
+}
+
+/* Decoration only: the purchase is already saved, and a stuck animation can never hold the list up. */
+async function wrapGift(id) {
+  const row = [...$('list').children].find(node => node.dataset.id === id);
+  if (!row || !row.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const layer = el('div', { class: 'fx-layer', ariaHidden: 'true' });
+  fxRunning = true;
+  try {
+    await Promise.race([giftSequence(row, layer), sleep(4500)]);
+  } catch {
+  } finally {
+    layer.remove();
+    fxRunning = false;
+  }
+}
+
 /* ---------- Actions ---------- */
 
 function openBuy(item) {
@@ -780,8 +964,10 @@ function openBuy(item) {
 
 $('buyConfirm').addEventListener('click', e => busy(e.currentTarget, async () => {
   try {
-    apply(await call('buy', { id: state.target.id }));
+    const data = await call('buy', { id: state.target.id });
     $('buyDlg').close();
+    await wrapGift(state.target.id);
+    apply(data);
     toast(t('tBought'));
   } catch (err) {
     if (err.message === 'already_bought' || err.message === 'not_found') {
