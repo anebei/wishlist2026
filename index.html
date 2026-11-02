@@ -301,6 +301,7 @@ input[type="text"], input[type="password"], select {
 
 <main class="wrap">
   <p class="notice" id="demoNotice" hidden></p>
+  <p class="notice" id="oldBackend" hidden></p>
   <div class="ownerbar" id="ownerBar" hidden>
     <div class="tabs" role="tablist">
       <button type="button" role="tab" id="tabOpen"></button>
@@ -428,7 +429,7 @@ input[type="text"], input[type="password"], select {
         <div class="thumb empty" id="fThumb"></div>
         <div class="imgside">
           <small id="imgStatus" aria-live="polite"></small>
-          <input type="text" inputmode="url" id="fImage" maxlength="2000" data-ph="imagePh" autocapitalize="none" spellcheck="false">
+          <input type="text" inputmode="url" id="fImage" maxlength="60000" data-ph="imagePh" autocapitalize="none" spellcheck="false">
           <button type="button" class="btn quiet" id="imgFind" data-t="imgAgain"></button>
         </div>
       </div>
@@ -463,7 +464,7 @@ const T = {
     specific: 'Mám na mysli konkrétní produkt', specificHint: 'Přidá odkaz, cenu a variantu. Vypnuto, pokud je to jen nápad.',
     image: 'Obrázek', imagePh: 'Nebo vložte odkaz na obrázek', imgIdle: 'Doplní se sám po vložení odkazu.', imgSearching: 'Hledám obrázek na stránce…',
     imgFound: 'Obrázek se doplnil z odkazu.', imgNone: 'Obrázek se na stránce nepodařilo najít. Můžete vložit odkaz na obrázek ručně.',
-    imgBroken: 'Tenhle obrázek se nedá načíst. Zkuste jiný odkaz.', imgAgain: 'Hledat znovu',
+    imgBroken: 'Tenhle obrázek se nedá načíst. Zkuste na něj kliknout pravým tlačítkem a zkopírovat adresu obrázku.', imgAgain: 'Hledat znovu',
     link: 'Odkaz', price: 'Cena', pricePh: 'např. 1 290 Kč', options: 'Varianta, velikost, model nebo další info', optionsPh: 'např. modrá, velikost M',
     boughtOn: 'Splněno', loading: 'Načítám seznam…', retry: 'Zkusit znovu',
     emptyGuest: 'Na seznamu teď nic není', emptyGuestBody: 'Všechno je rozebrané, nebo tu ještě nic nepřibylo.',
@@ -476,7 +477,10 @@ const T = {
     addJoy: 'Přidat malou radost', newJoy: 'Nová malá radost', editJoy: 'Upravit malou radost', joyName: 'Co by mě potěšilo',
     join: 'Přidám se', joined: 'Přidali jste se. Zrušit', joinCount: 'Počet dárců:', restoreJoy: 'Vynulovat počet',
     tJoined: 'Díky, že se přidáváte.', tLeft: 'Zrušeno', tJoyReset: 'Počet je vynulovaný',
-    imgIdleIdea: 'Vložte odkaz na obrázek nebo na stránku, kde je.',
+    imgIdleIdea: 'Na obrázek klikněte pravým tlačítkem, zvolte Kopírovat adresu obrázku a vložte ji sem. Na telefonu podržte prst na obrázku.',
+    imgTooBig: 'Tenhle obrázek je moc velký. Otevřete ho ve větší velikosti a zkopírujte adresu obrázku.',
+    imgNotSaved: 'Z tohoto odkazu se obrázek nepodařilo získat, takže přání není uložené. Vložte přímo adresu obrázku, nebo pole s obrázkem vymažte.',
+    oldBackend: 'Tabulka ještě běží na staré verzi skriptu, takže obrázky u nekonkrétních přání a malé radosti nebudou fungovat. V Apps Script vložte nový Code.gs a zvolte Deploy > Manage deployments > tužka > New version > Deploy.',
     emptyWishes: 'Všechna přání už jsou splněná', emptyWishesBody: 'Pořád se můžete přidat k některé z malých radostí.',
     emptyBought: 'Zatím nebylo splněno nic.', emptyBoughtBody: 'Splněná přání se objeví tady.',
     tBought: 'Hotovo. Děkujeme, že plníte přání. Přání zmizelo ze seznamu.', tSaved: 'Uloženo', tRemoved: 'Smazáno', tRestored: 'Přání je zpět v seznamu', tSignedOut: 'Odhlášeno',
@@ -548,7 +552,7 @@ function demo(action, req) {
     const name = (raw.name || '').trim();
     if (!name) throw new Error('bad_input');
     const on = raw.specific === true;
-    return { name, specific: on, link: on ? normalizeLink(raw.link) : '', price: on ? raw.price.trim() : '', options: on ? raw.options.trim() : '', image: normalizeLink(raw.image) };
+    return { name, specific: on, link: on ? normalizeLink(raw.link) : '', price: on ? raw.price.trim() : '', options: on ? raw.options.trim() : '', image: normalizeImage(raw.image) };
   };
   const reply = extra => {
     store.set('wishlist-demo', JSON.stringify(items));
@@ -584,6 +588,15 @@ function demo(action, req) {
     case 'restore': { const item = find(req.id); item.status = 'open'; item.bought = ''; item.joined = 0; return reply(); }
     default: throw new Error('bad_input');
   }
+}
+
+/* Copying an image from Google often gives the picture itself as text instead of a web address. */
+const IMAGE_DATA = /^data:image\/(png|jpe?g|gif|webp);base64,[a-z0-9+/=]+$/i;
+const MAX_IMAGE_DATA = 45000;
+function normalizeImage(value) {
+  const text = (value || '').replace(/\s/g, '');
+  if (/^data:/i.test(text)) return IMAGE_DATA.test(text) && text.length <= MAX_IMAGE_DATA ? text : '';
+  return normalizeLink(value);
 }
 
 function normalizeLink(value) {
@@ -832,6 +845,8 @@ function render() {
   $('lede').textContent = t('lede');
   $('demoNotice').textContent = t('demo');
   $('demoNotice').hidden = !!API_URL;
+  $('oldBackend').textContent = t('oldBackend');
+  $('oldBackend').hidden = !(API_URL && state.owner && state.items.some(item => item.kind === undefined));
 
   document.querySelectorAll('[data-t]').forEach(node => { node.textContent = t(node.dataset.t); });
   document.querySelectorAll('[data-ph]').forEach(node => { node.placeholder = t(node.dataset.ph); });
@@ -1088,8 +1103,20 @@ function showFormImage(src, statusKey) {
     $('imgStatus').textContent = t('imgBroken');
     // A link that isn't a picture may be a page with one on it.
     if (imageManual) setTimeout(() => {
-      if (normalizeLink($('fImage').value) === src) imageFromPage(src);
+      if (normalizeImage($('fImage').value) === src && !/^data:/i.test(src) && !lookupPending) imageFromPage(src);
     }, 500);
+  });
+}
+
+/* Waits for the preview, so a link that isn't a picture is caught before saving. */
+function thumbLoaded() {
+  const img = $('fThumb').querySelector('img');
+  if (!img) return Promise.resolve(false);
+  if (img.complete) return Promise.resolve(img.naturalWidth > 0);
+  return new Promise(resolve => {
+    img.addEventListener('load', () => resolve(true), { once: true });
+    img.addEventListener('error', () => resolve(false), { once: true });
+    setTimeout(() => resolve(true), 6000);
   });
 }
 
@@ -1137,12 +1164,13 @@ $('fLink').addEventListener('change', () => lookup());
 $('fLink').addEventListener('paste', () => setTimeout(() => lookup(), 0));
 $('imgFind').addEventListener('click', () => lookup(true));
 $('fImage').addEventListener('input', () => {
-  const src = normalizeLink($('fImage').value);
+  const src = normalizeImage($('fImage').value);
+  showError('formError');
   imageManual = !!src;
   lookupRun++;
   lookupPending = null;
   $('imgFind').disabled = false;
-  showFormImage(src, src ? '' : imageHint());
+  showFormImage(src, src ? '' : /^\s*data:/i.test($('fImage').value) ? 'imgTooBig' : imageHint());
 });
 
 function openForm(item, kind) {
@@ -1173,9 +1201,14 @@ $('itemForm').addEventListener('submit', e => {
   e.preventDefault();
   busy($('formSave'), async () => {
     await lookup();
-    if (imageManual && !$('fThumb').querySelector('img')) {
-      const page = normalizeLink($('fImage').value);
-      if (page) await (lookupPending || imageFromPage(page));
+    if (imageManual && !(await thumbLoaded())) {
+      const page = normalizeImage($('fImage').value);
+      if (page && !/^data:/i.test(page)) await (lookupPending || imageFromPage(page));
+    }
+    const loaded = await thumbLoaded();
+    if ($('fImage').value.trim() && !loaded) {
+      showError('formError', t('imgNotSaved'));
+      return;
     }
     const specific = $('fSpecific').checked && state.formKind !== 'joy';
     const item = {
@@ -1185,7 +1218,7 @@ $('itemForm').addEventListener('submit', e => {
       link: specific ? normalizeLink($('fLink').value) : '',
       price: specific ? $('fPrice').value : '',
       options: specific ? $('fOptions').value : '',
-      image: normalizeLink($('fImage').value)
+      image: normalizeImage($('fImage').value)
     };
     try {
       const data = state.target
