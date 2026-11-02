@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Anežčin seznam přání</title>
+<title>Seznam vánočních přání Anežky a Filipa 2026</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap">
@@ -45,7 +45,7 @@ body {
   margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
   font: 400 1rem/1.5 var(--body); padding-bottom: env(safe-area-inset-bottom, 0px);
 }
-button, input { font: inherit; color: inherit; }
+button, input, select { font: inherit; color: inherit; }
 a { color: var(--berry); }
 :focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 
@@ -68,9 +68,9 @@ a { color: var(--berry); }
 .band .wrap { position: relative; z-index: 1; padding-block: 34px 30px; }
 h1 {
   font: 700 clamp(2.1rem, 7vw, 3.4rem)/1.05 var(--display); letter-spacing: -.02em;
-  margin: 0 0 8px; max-width: 13em; padding-right: 44px; text-wrap: balance;
+  margin: 0 0 8px; max-width: 15em; padding-right: calc(clamp(24px, 12vw, 120px) + 12px); text-wrap: balance;
 }
-.lede { margin: 0; max-width: 34em; padding-right: 44px; }
+.lede { margin: 0; max-width: 34em; padding-right: calc(clamp(24px, 12vw, 120px) + 12px); }
 
 /* Notices and owner bar */
 .notice {
@@ -87,6 +87,18 @@ h1 {
   color: var(--muted); cursor: pointer; font-variant-numeric: tabular-nums;
 }
 .tabs button[aria-selected="true"] { background: var(--berry); color: var(--on-berry); }
+
+/* Sorting and filters */
+.filters {
+  margin-top: 20px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--paper); display: grid; grid-template-columns: 1.3fr 1.3fr 1fr 1fr; gap: 12px;
+}
+.filters .field { min-width: 0; }
+.filters-foot {
+  grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; justify-content: space-between;
+  color: var(--muted); font-variant-numeric: tabular-nums;
+}
+.filters-foot .btn { margin-right: -10px; }
 
 /* Buttons */
 .btn {
@@ -161,7 +173,7 @@ form { display: grid; gap: 14px; }
 .field { display: grid; gap: 4px; }
 .field label { font-weight: 600; font-size: .9375rem; }
 .field small { color: var(--muted); }
-input[type="text"], input[type="password"] {
+input[type="text"], input[type="password"], select {
   width: 100%; min-height: 44px; padding: 9px 12px; border-radius: 8px;
   border: 1px solid var(--line); background: var(--bg);
 }
@@ -195,6 +207,9 @@ input[type="text"], input[type="password"] {
   padding: 10px 16px; border-radius: 9px; background: var(--ink); color: var(--bg); font-weight: 500;
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media (max-width: 620px) {
+  .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 460px) {
   .tag { padding-left: 42px; grid-template-columns: 76px minmax(0, 1fr); gap: 10px 12px; }
   .tag::before { left: 13px; }
@@ -221,6 +236,36 @@ input[type="text"], input[type="password"] {
     </div>
     <button type="button" class="btn primary" id="addBtn"></button>
   </div>
+  <section class="filters" id="filters" aria-label="Řazení a filtry" hidden>
+    <div class="field">
+      <label for="sortBy" data-t="sort"></label>
+      <select id="sortBy">
+        <option value="" data-t="sortDefault"></option>
+        <option value="asc" data-t="sortAsc"></option>
+        <option value="desc" data-t="sortDesc"></option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="typeFilter" data-t="type"></label>
+      <select id="typeFilter">
+        <option value="" data-t="typeAll"></option>
+        <option value="specific" data-t="typeSpecific"></option>
+        <option value="any" data-t="typeAny"></option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="priceMin" data-t="priceMin"></label>
+      <input type="text" inputmode="numeric" id="priceMin" autocomplete="off">
+    </div>
+    <div class="field">
+      <label for="priceMax" data-t="priceMax"></label>
+      <input type="text" inputmode="numeric" id="priceMax" autocomplete="off">
+    </div>
+    <div class="filters-foot" id="filtersFoot" hidden>
+      <span id="filterCount" aria-live="polite"></span>
+      <button type="button" class="btn quiet" id="filterReset" data-t="filterReset"></button>
+    </div>
+  </section>
   <ul id="list"></ul>
   <div class="status" id="status" aria-live="polite"></div>
 </main>
@@ -319,8 +364,8 @@ input[type="text"], input[type="password"] {
 <div id="toast" role="status" hidden></div>
 
 <script>
-/* ===== SETTINGS: edit these two lines ===== */
-const API_URL = 'https://script.google.com/macros/s/AKfycbyESgq3B2PIrREr8nM5fegFD_gac1kMnKlrmAXmS_SsebF6XgO4CNekNmz9RMb8eNwBHw/exec';   // paste your Google Apps Script Web app URL between the quotes
+/* ===== SETTINGS ===== */
+const API_URL = 'https://script.google.com/macros/s/AKfycbyESgq3B2PIrREr8nM5fegFD_gac1kMnKlrmAXmS_SsebF6XgO4CNekNmz9RMb8eNwBHw/exec';
 const LIST_TITLE = 'Seznam vánočních přání Anežky a Filipa 2026';
 /* ========================================== */
 
@@ -343,6 +388,10 @@ const T = {
     boughtOn: 'Koupeno', loading: 'Načítám seznam…', retry: 'Zkusit znovu',
     emptyGuest: 'Na seznamu teď nic není', emptyGuestBody: 'Všechno je rozebrané, nebo tu ještě nic nepřibylo.',
     emptyOwner: 'Seznam je prázdný', emptyOwnerBody: 'První přání přidáte tlačítkem Přidat přání.',
+    sort: 'Seřadit', sortDefault: 'Výchozí pořadí', sortAsc: 'Od nejlevnějšího', sortDesc: 'Od nejdražšího',
+    type: 'Typ přání', typeAll: 'Všechno', typeSpecific: 'Konkrétní produkty', typeAny: 'Nekonkrétní přání',
+    priceMin: 'Cena od (Kč)', priceMax: 'Cena do (Kč)', filterReset: 'Zrušit filtry',
+    noMatch: 'Tomu teď nic neodpovídá', noMatchBody: 'Zkuste upravit filtry. Při zadané ceně se zobrazují jen přání, která mají cenu.',
     emptyBought: 'Zatím nic koupeno', emptyBoughtBody: 'Odškrtnuté dárky se objeví tady.',
     tBought: 'Hotovo, děkujeme. Položka zmizela ze seznamu.', tSaved: 'Uloženo', tRemoved: 'Smazáno', tRestored: 'Položka je zpět na seznamu', tSignedOut: 'Odhlášeno',
     e_bad_login: 'Jméno nebo heslo nesedí.', e_locked: 'Příliš mnoho pokusů. Zkuste to za 15 minut.',
@@ -619,6 +668,39 @@ function card(item) {
   return el('li', { class: 'item' }, tag);
 }
 
+/* Reads a number from a price typed as text: 1 290 Kč, 1.290,50 Kč, 690,-, od 500 Kč. */
+function parsePrice(text) {
+  const match = String(text || '').replace(/[\s\u00a0\u202f]/g, '').match(/\d[\d.,]*/);
+  if (!match) return null;
+  const number = match[0].replace(/[.,]+$/, '').replace(/[.,](?=\d{3}(?:[.,]|$))/g, '').replace(',', '.');
+  const value = parseFloat(number);
+  return isNaN(value) ? null : value;
+}
+const itemPrice = item => item.specific ? parsePrice(item.price) : null;
+
+function filterValues() {
+  let low = parsePrice($('priceMin').value), high = parsePrice($('priceMax').value);
+  if (low !== null && high !== null && low > high) [low, high] = [high, low];
+  return { sort: $('sortBy').value, type: $('typeFilter').value, low, high };
+}
+
+function applyFilters(items) {
+  const { sort, type, low, high } = filterValues();
+  const kept = items.filter(item => {
+    if (type && (type === 'specific') !== !!item.specific) return false;
+    if (low === null && high === null) return true;
+    const price = itemPrice(item);
+    return price !== null && (low === null || price >= low) && (high === null || price <= high);
+  });
+  if (!sort) return kept;
+  const direction = sort === 'asc' ? 1 : -1;
+  return kept.sort((a, b) => {
+    const priceA = itemPrice(a), priceB = itemPrice(b);
+    if (priceA === null || priceB === null) return (priceA === null) - (priceB === null);
+    return (priceA - priceB) * direction;
+  });
+}
+
 function statusBlock(title, body, withRetry) {
   return el('div', {},
     el('h2', { textContent: title }),
@@ -651,12 +733,18 @@ function render() {
   $('signInBtn').hidden = state.owner;
   $('signOutBtn').hidden = !state.owner;
 
-  const shown = state.tab === 'bought' ? bought : open;
+  const onBoughtTab = state.tab === 'bought';
+  const shown = onBoughtTab ? bought : applyFilters(open);
+  const filtering = !!($('sortBy').value || $('typeFilter').value || $('priceMin').value.trim() || $('priceMax').value.trim());
+  $('filters').hidden = onBoughtTab || !open.length;
+  $('filtersFoot').hidden = !filtering;
+  $('filterCount').textContent = `Zobrazeno ${shown.length} z ${open.length}`;
   $('list').replaceChildren(...shown.map(card));
 
   let block = null;
   if (state.failed) block = statusBlock(state.failedText, '', true);
   else if (!state.loaded) block = el('p', { textContent: t('loading') });
+  else if (!shown.length && !onBoughtTab && open.length) block = statusBlock(t('noMatch'), t('noMatchBody'));
   else if (!shown.length && state.tab === 'bought') block = statusBlock(t('emptyBought'), t('emptyBoughtBody'));
   else if (!shown.length && state.owner) block = statusBlock(t('emptyOwner'), t('emptyOwnerBody'));
   else if (!shown.length) block = statusBlock(t('emptyGuest'), t('emptyGuestBody'));
@@ -862,6 +950,11 @@ $('signOutBtn').addEventListener('click', e => busy(e.currentTarget, async () =>
 
 document.querySelectorAll('[data-close]').forEach(button =>
   button.addEventListener('click', () => button.closest('dialog').close()));
+['sortBy', 'typeFilter', 'priceMin', 'priceMax'].forEach(id => $(id).addEventListener('input', render));
+$('filterReset').addEventListener('click', () => {
+  ['sortBy', 'typeFilter', 'priceMin', 'priceMax'].forEach(id => { $(id).value = ''; });
+  render();
+});
 $('tabOpen').addEventListener('click', () => { state.tab = 'open'; render(); });
 $('tabBought').addEventListener('click', () => { state.tab = 'bought'; render(); });
 
