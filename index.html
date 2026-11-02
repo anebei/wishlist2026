@@ -441,10 +441,10 @@ input[type="text"], input[type="password"], select {
         <label for="fPrice" data-t="price" id="fPriceLabel"></label>
         <input type="text" id="fPrice" maxlength="60" data-ph="pricePh">
       </div>
-      <div class="field">
-        <label for="fOptions" data-t="options"></label>
-        <input type="text" id="fOptions" maxlength="500" data-ph="optionsPh">
-      </div>
+    </div>
+    <div class="field">
+      <label for="fOptions" data-t="options"></label>
+      <input type="text" id="fOptions" maxlength="500" data-ph="optionsPh">
     </div>
     <div class="field">
       <label for="fImage" data-t="image"></label>
@@ -576,7 +576,7 @@ function demo(action, req) {
     const name = (raw.name || '').trim();
     if (!name) throw new Error('bad_input');
     const on = raw.specific === true, more = on || raw.kind === 'joy';
-    return { name, specific: on, link: more ? normalizeLink(raw.link) : '', price: on ? raw.price.trim() : '', options: more ? raw.options.trim() : '', image: normalizeImage(raw.image) };
+    return { name, specific: on, link: more ? normalizeLink(raw.link) : '', price: on ? raw.price.trim() : '', options: (raw.options || '').trim(), image: normalizeImage(raw.image) };
   };
   const reply = extra => {
     store.set('wishlist-demo', JSON.stringify(items));
@@ -815,7 +815,7 @@ function card(item, archive) {
         !item.specific && !joy ? el('p', { class: 'anykind', textContent: t('anyKind') }) : null),
       joy ? el('div', { class: 'price', textContent: t('joyPrice') })
         : item.specific && item.price ? el('div', { class: 'price', textContent: item.price }) : null));
-  if ((item.specific || joy) && item.options) {
+  if (item.options) {
     main.append(el('p', { class: 'options' }, el('b', { textContent: t('optionsLabel') + ' ' }), item.options));
   }
   if (joy && item.joined > 0 && !archive) main.append(el('p', { class: 'options', textContent: `${t('joinCount')} ${item.joined}×` }));
@@ -897,7 +897,7 @@ function render() {
   $('demoNotice').textContent = t('demo');
   $('demoNotice').hidden = !!API_URL;
   $('oldBackend').textContent = t('oldBackend');
-  $('oldBackend').hidden = !(API_URL && state.owner && state.backend !== 4);
+  $('oldBackend').hidden = !(API_URL && state.owner && state.backend !== 5);
 
   document.querySelectorAll('[data-t]').forEach(node => { node.textContent = t(node.dataset.t); });
   document.querySelectorAll('[data-ph]').forEach(node => { node.placeholder = t(node.dataset.ph); });
@@ -1286,7 +1286,7 @@ $('itemForm').addEventListener('submit', e => {
       specific,
       link: hasDetails() ? normalizeLink($('fLink').value) : '',
       price: specific ? $('fPrice').value : '',
-      options: hasDetails() ? $('fOptions').value : '',
+      options: $('fOptions').value,
       image: normalizeImage($('fImage').value)
     };
     try {
