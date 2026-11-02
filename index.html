@@ -1,0 +1,877 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Anežčin seznam přání</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: a wrapped-paper band on top, then one column of paper gift tags tied to the list. */
+:root {
+  --bg: #F4EEF4; --paper: #FFFDFC; --ink: #2A1A33; --muted: #685770; --line: #DDCFE0;
+  --berry: #A81F57; --on-berry: #FFFFFF; --gold: #E5AE3C; --on-gold: #33230A;
+  --band: #8E1A4B; --band-2: #9D2558; --on-band: #FFF6F0;
+  --ok-bg: #E4F1E6; --ok-ink: #1F5B31; --warn-bg: #FBEFD3; --warn-ink: #6A4A07;
+  --shadow: rgba(66, 28, 70, .16); --photo: #FFFFFF;
+  --display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --body: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1F1725; --paper: #2E2436; --ink: #F3EAF1; --muted: #BBABC1; --line: #4A3C54;
+    --berry: #F2779F; --on-berry: #2A0F1C; --gold: #E5AE3C; --on-gold: #33230A;
+    --band: #5C1536; --band-2: #691B3F; --on-band: #FFF0EA;
+    --ok-bg: #203A29; --ok-ink: #B5E3C2; --warn-bg: #43361A; --warn-ink: #F3D993;
+    --shadow: rgba(0, 0, 0, .4); --photo: #FFFFFF;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1F1725; --paper: #2E2436; --ink: #F3EAF1; --muted: #BBABC1; --line: #4A3C54;
+  --berry: #F2779F; --on-berry: #2A0F1C; --gold: #E5AE3C; --on-gold: #33230A;
+  --band: #5C1536; --band-2: #691B3F; --on-band: #FFF0EA;
+  --ok-bg: #203A29; --ok-ink: #B5E3C2; --warn-bg: #43361A; --warn-ink: #F3D993;
+  --shadow: rgba(0, 0, 0, .4); --photo: #FFFFFF;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; min-height: 100vh; background: var(--bg); color: var(--ink);
+  font: 400 1rem/1.5 var(--body); padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+button, input { font: inherit; color: inherit; }
+a { color: var(--berry); }
+:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
+.wrap {
+  width: 100%; max-width: 720px; margin-inline: auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+/* Wrapped-paper header */
+.band {
+  position: relative; overflow: hidden; color: var(--on-band);
+  background: repeating-linear-gradient(135deg, var(--band) 0 16px, var(--band-2) 16px 32px);
+  border-bottom: 7px solid var(--gold);
+}
+.band::after {
+  content: ""; position: absolute; top: 0; bottom: 0; right: clamp(24px, 12vw, 120px);
+  width: 20px; background: var(--gold); opacity: .92;
+}
+.band .wrap { position: relative; z-index: 1; padding-block: 34px 30px; }
+h1 {
+  font: 700 clamp(2.1rem, 7vw, 3.4rem)/1.05 var(--display); letter-spacing: -.02em;
+  margin: 0 0 8px; max-width: 13em; padding-right: 44px; text-wrap: balance;
+}
+.lede { margin: 0; max-width: 34em; padding-right: 44px; }
+
+/* Notices and owner bar */
+.notice {
+  margin-top: 16px; padding: 10px 14px; border-radius: 8px;
+  background: var(--warn-bg); color: var(--warn-ink); font-size: .9375rem;
+}
+.ownerbar {
+  display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;
+  margin-top: 20px;
+}
+.tabs { display: flex; gap: 4px; padding: 4px; background: var(--paper); border-radius: 10px; border: 1px solid var(--line); }
+.tabs button {
+  border: 0; background: transparent; padding: 7px 12px; border-radius: 7px; font-weight: 600;
+  color: var(--muted); cursor: pointer; font-variant-numeric: tabular-nums;
+}
+.tabs button[aria-selected="true"] { background: var(--berry); color: var(--on-berry); }
+
+/* Buttons */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 42px; padding: 8px 16px; border-radius: 9px; border: 1px solid var(--line);
+  background: var(--paper); font-weight: 600; cursor: pointer; text-decoration: none; color: var(--ink);
+}
+.btn:hover { border-color: var(--berry); }
+.btn.primary { background: var(--berry); border-color: var(--berry); color: var(--on-berry); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.quiet { background: transparent; border-color: transparent; color: var(--muted); padding-inline: 10px; min-height: 36px; font-weight: 500; }
+.btn.quiet:hover { color: var(--berry); }
+.btn[disabled] { opacity: .6; cursor: progress; }
+
+/* Gift tags */
+#list { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 16px; }
+.item { filter: drop-shadow(0 3px 7px var(--shadow)); min-width: 0; }
+.tag {
+  position: relative; background: var(--paper); padding: 16px 16px 14px 48px;
+  clip-path: polygon(24px 0, 100% 0, 100% 100%, 24px 100%, 0 calc(100% - 24px), 0 24px);
+  display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 10px 16px; align-items: start;
+}
+.thumb {
+  display: block; position: relative; overflow: hidden; width: 112px; aspect-ratio: 1; max-width: 100%;
+  border-radius: 8px; background: var(--photo); grid-row: span 2;
+}
+.thumb img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.thumb.empty { background: repeating-linear-gradient(135deg, var(--band) 0 8px, var(--band-2) 8px 16px); }
+.thumb.empty::before, .thumb.empty::after { content: ""; position: absolute; background: var(--gold); }
+.thumb.empty::before { left: 50%; top: 0; bottom: 0; width: 10px; margin-left: -5px; }
+.thumb.empty::after { top: 50%; left: 0; right: 0; height: 10px; margin-top: -5px; }
+.tag-main { min-width: 0; display: grid; gap: 8px; }
+.tag::before {
+  content: ""; position: absolute; left: 16px; top: 50%; width: 14px; height: 14px; margin-top: -7px;
+  border-radius: 50%; background: var(--bg); box-shadow: inset 0 0 0 2px var(--gold);
+}
+.tag-head { display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; }
+.tag-title { min-width: 0; }
+h2 { font: 700 1.3rem/1.2 var(--display); margin: 0; overflow-wrap: anywhere; }
+.anykind { margin: 4px 0 0; color: var(--muted); font-size: .9375rem; }
+.price { font: 700 1.1rem/1.3 var(--display); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.options { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.options b { font-weight: 600; color: var(--muted); }
+.actions { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.shop { font-weight: 600; margin-right: auto; overflow-wrap: anywhere; }
+.tick { padding-left: 11px; margin-left: auto; }
+.tick::before {
+  content: ""; width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--berry); flex: none;
+}
+.owner-actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 2px; margin-left: -10px; border-top: 1px dashed var(--line); padding-top: 6px; }
+.stamp {
+  justify-self: start; padding: 2px 10px; border-radius: 5px; font-weight: 600; font-size: .875rem;
+  background: var(--ok-bg); color: var(--ok-ink); font-variant-numeric: tabular-nums;
+}
+.status { margin-top: 28px; text-align: center; color: var(--muted); }
+.status h2 { color: var(--ink); margin-bottom: 4px; }
+.status .btn { margin-top: 12px; }
+
+footer { margin-top: 36px; padding-block: 8px 28px; text-align: center; }
+
+/* Dialogs */
+dialog {
+  width: min(460px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto;
+  border: 0; border-radius: 14px; padding: 20px; background: var(--paper); color: var(--ink);
+  box-shadow: 0 18px 50px var(--shadow);
+}
+dialog::backdrop { background: rgba(30, 14, 34, .55); }
+dialog h2 { margin-bottom: 8px; }
+dialog p { margin: 0 0 12px; }
+.named { font-weight: 600; overflow-wrap: anywhere; }
+form { display: grid; gap: 14px; }
+.field { display: grid; gap: 4px; }
+.field label { font-weight: 600; font-size: .9375rem; }
+.field small { color: var(--muted); }
+input[type="text"], input[type="password"] {
+  width: 100%; min-height: 44px; padding: 9px 12px; border-radius: 8px;
+  border: 1px solid var(--line); background: var(--bg);
+}
+.switch { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; font-weight: 600; }
+.switch input { position: absolute; opacity: 0; }
+.switch .track {
+  flex: none; width: 44px; height: 26px; border-radius: 13px; background: var(--line);
+  position: relative; transition: background .15s;
+}
+.switch .track::after {
+  content: ""; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
+  border-radius: 50%; background: var(--paper); transition: transform .15s;
+}
+.switch input:checked + .track { background: var(--berry); }
+.switch input:checked + .track::after { transform: translateX(18px); }
+.switch input:focus-visible + .track { outline: 3px solid var(--gold); outline-offset: 2px; }
+.switch small { display: block; font-weight: 400; color: var(--muted); }
+.imgrow { display: grid; grid-template-columns: 76px minmax(0, 1fr); gap: 12px; align-items: start; }
+.imgrow .thumb { width: 76px; grid-row: auto; }
+.imgside { display: grid; gap: 6px; min-width: 0; }
+.imgside small { color: var(--muted); }
+.imgside .btn { justify-self: start; margin-left: -10px; }
+#fDetails { display: grid; gap: 14px; padding-left: 14px; border-left: 3px solid var(--gold); }
+.dlg-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+.error { margin: 0; color: var(--berry); font-weight: 600; }
+
+#toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  width: max-content; max-width: calc(100vw - 32px); z-index: 20;
+  padding: 10px 16px; border-radius: 9px; background: var(--ink); color: var(--bg); font-weight: 500;
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media (max-width: 460px) {
+  .tag { padding-left: 42px; grid-template-columns: 76px minmax(0, 1fr); gap: 10px 12px; }
+  .tag::before { left: 13px; }
+  .tag > .thumb { width: 76px; grid-row: auto; }
+  .actions { grid-column: 1 / -1; }
+  .shop { width: 100%; }
+}
+</style>
+</head>
+<body>
+<header class="band">
+  <div class="wrap">
+    <h1 id="title"></h1>
+    <p class="lede" id="lede"></p>
+  </div>
+</header>
+
+<main class="wrap">
+  <p class="notice" id="demoNotice" hidden></p>
+  <div class="ownerbar" id="ownerBar" hidden>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" id="tabOpen"></button>
+      <button type="button" role="tab" id="tabBought"></button>
+    </div>
+    <button type="button" class="btn primary" id="addBtn"></button>
+  </div>
+  <ul id="list"></ul>
+  <div class="status" id="status" aria-live="polite"></div>
+</main>
+
+<footer class="wrap">
+  <button type="button" class="btn quiet" id="signInBtn"></button>
+  <button type="button" class="btn quiet" id="signOutBtn" hidden></button>
+</footer>
+
+<dialog id="buyDlg">
+  <h2 data-t="buyTitle"></h2>
+  <p class="named" id="buyName"></p>
+  <p data-t="buyBody"></p>
+  <p class="error" id="buyError" hidden></p>
+  <div class="dlg-actions">
+    <button type="button" class="btn" data-close data-t="back"></button>
+    <button type="button" class="btn primary" id="buyConfirm" data-t="buyYes"></button>
+  </div>
+</dialog>
+
+<dialog id="delDlg">
+  <h2 data-t="delTitle"></h2>
+  <p class="named" id="delName"></p>
+  <p data-t="delBody"></p>
+  <p class="error" id="delError" hidden></p>
+  <div class="dlg-actions">
+    <button type="button" class="btn" data-close data-t="back"></button>
+    <button type="button" class="btn primary" id="delConfirm" data-t="delYes"></button>
+  </div>
+</dialog>
+
+<dialog id="loginDlg">
+  <form id="loginForm">
+    <h2 data-t="signInTitle"></h2>
+    <div class="field">
+      <label for="lUser" data-t="username"></label>
+      <input type="text" id="lUser" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+    </div>
+    <div class="field">
+      <label for="lPass" data-t="password"></label>
+      <input type="password" id="lPass" autocomplete="current-password" required>
+    </div>
+    <p class="error" id="loginError" hidden></p>
+    <div class="dlg-actions">
+      <button type="button" class="btn" data-close data-t="back"></button>
+      <button type="submit" class="btn primary" id="loginSubmit" data-t="signIn"></button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="formDlg">
+  <form id="itemForm">
+    <h2 id="formTitle"></h2>
+    <div class="field">
+      <label for="fName" data-t="wishName"></label>
+      <input type="text" id="fName" maxlength="200" required>
+    </div>
+    <label class="switch">
+      <input type="checkbox" id="fSpecific">
+      <span class="track"></span>
+      <span><span data-t="specific"></span><small data-t="specificHint"></small></span>
+    </label>
+    <div id="fDetails" hidden>
+      <div class="field">
+        <label for="fLink" data-t="link"></label>
+        <input type="text" inputmode="url" id="fLink" maxlength="2000" placeholder="https://" autocapitalize="none" spellcheck="false">
+      </div>
+      <div class="field">
+        <label for="fImage" data-t="image"></label>
+        <div class="imgrow">
+          <div class="thumb empty" id="fThumb"></div>
+          <div class="imgside">
+            <small id="imgStatus" aria-live="polite"></small>
+            <input type="text" inputmode="url" id="fImage" maxlength="2000" data-ph="imagePh" autocapitalize="none" spellcheck="false">
+            <button type="button" class="btn quiet" id="imgFind" data-t="imgAgain"></button>
+          </div>
+        </div>
+      </div>
+      <div class="field">
+        <label for="fPrice" data-t="price"></label>
+        <input type="text" id="fPrice" maxlength="60" data-ph="pricePh">
+      </div>
+      <div class="field">
+        <label for="fOptions" data-t="options"></label>
+        <input type="text" id="fOptions" maxlength="500" data-ph="optionsPh">
+      </div>
+    </div>
+    <p class="error" id="formError" hidden></p>
+    <div class="dlg-actions">
+      <button type="button" class="btn" data-close data-t="back"></button>
+      <button type="submit" class="btn primary" id="formSave" data-t="save"></button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" role="status" hidden></div>
+
+<script>
+/* ===== SETTINGS: edit these two lines ===== */
+const API_URL = 'https://script.google.com/macros/s/AKfycbyESgq3B2PIrREr8nM5fegFD_gac1kMnKlrmAXmS_SsebF6XgO4CNekNmz9RMb8eNwBHw/exec';   // paste your Google Apps Script Web app URL between the quotes
+const LIST_TITLE = 'Anežčin seznam přání';
+/* ========================================== */
+
+const T = {
+    lede: 'Vyberte si, co chcete darovat, a odškrtněte to. Položka pak zmizí, aby se dárky neopakovaly.',
+    demo: 'Ukázkový režim: změny se ukládají jen v tomto prohlížeči. Přihlaste se jako demo / demo a vyzkoušejte přání s odkazem na produkt.',
+    tabOpen: 'Na seznamu', tabBought: 'Koupeno', add: 'Přidat přání',
+    signIn: 'Přihlásit se', signOut: 'Odhlásit se', signInTitle: 'Přihlášení', username: 'Uživatelské jméno', password: 'Heslo',
+    back: 'Zpět', save: 'Uložit', edit: 'Upravit', remove: 'Smazat', restore: 'Vrátit na seznam',
+    tick: 'Odškrtnout jako koupené', buyTitle: 'Opravdu koupeno?',
+    buyBody: 'Po potvrzení položka zmizí ze seznamu pro všechny, aby ji nikdo nekoupil podruhé.',
+    buyYes: 'Ano, koupeno', delTitle: 'Smazat položku?', delBody: 'Položka se trvale odstraní i z tabulky.', delYes: 'Smazat',
+    anyKind: 'Bez konkrétního modelu. Vyberte, co se vám líbí.', shop: 'Otevřít odkaz', optionsLabel: 'Varianta:',
+    newWish: 'Nové přání', editWish: 'Upravit přání', wishName: 'Co si přeji',
+    specific: 'Mám na mysli konkrétní produkt', specificHint: 'Přidá odkaz, cenu a variantu. Vypnuto, pokud je to jen nápad.',
+    image: 'Obrázek', imagePh: 'Nebo vložte odkaz na obrázek', imgIdle: 'Doplní se sám po vložení odkazu.', imgSearching: 'Hledám obrázek na stránce…',
+    imgFound: 'Obrázek se doplnil z odkazu.', imgNone: 'Obrázek se na stránce nepodařilo najít. Můžete vložit odkaz na obrázek ručně.',
+    imgBroken: 'Tenhle obrázek se nedá načíst. Zkuste jiný odkaz.', imgAgain: 'Hledat znovu',
+    link: 'Odkaz', price: 'Cena', pricePh: 'např. 1 290 Kč', options: 'Varianta nebo upřesnění', optionsPh: 'např. modrá, velikost M',
+    boughtOn: 'Koupeno', loading: 'Načítám seznam…', retry: 'Zkusit znovu',
+    emptyGuest: 'Na seznamu teď nic není', emptyGuestBody: 'Všechno je rozebrané, nebo tu ještě nic nepřibylo.',
+    emptyOwner: 'Seznam je prázdný', emptyOwnerBody: 'První přání přidáte tlačítkem Přidat přání.',
+    emptyBought: 'Zatím nic koupeno', emptyBoughtBody: 'Odškrtnuté dárky se objeví tady.',
+    tBought: 'Hotovo, děkujeme. Položka zmizela ze seznamu.', tSaved: 'Uloženo', tRemoved: 'Smazáno', tRestored: 'Položka je zpět na seznamu', tSignedOut: 'Odhlášeno',
+    e_bad_login: 'Jméno nebo heslo nesedí.', e_locked: 'Příliš mnoho pokusů. Zkuste to za 15 minut.',
+    e_not_configured: 'Přihlášení ještě není nastavené. Doplňte jméno a heslo v Code.gs a nasaďte novou verzi.',
+    e_session_expired: 'Přihlášení vypršelo. Přihlaste se znovu.', e_already_bought: 'Tuhle položku už mezitím koupil někdo jiný.',
+    e_not_found: 'Položka už neexistuje.', e_bad_input: 'Vyplňte, co si přejete.', e_busy: 'Seznam je právě zaneprázdněný. Zkuste to znovu.',
+    e_network: 'Nepodařilo se spojit se seznamem. Zkontrolujte připojení a zkuste to znovu.', e_server: 'Něco se pokazilo na straně tabulky. Zkuste to znovu.'
+};
+
+const $ = id => document.getElementById(id);
+const store = {
+  get(key) { try { return localStorage.getItem(key); } catch { return null; } },
+  set(key, value) { try { localStorage.setItem(key, value); } catch {} },
+  del(key) { try { localStorage.removeItem(key); } catch {} }
+};
+const state = {
+  token: store.get('wishlist-token'),
+  owner: false, items: [], loaded: false, failed: false, tab: 'open', target: null
+};
+const t = key => T[key] ?? key;
+const errorText = err => t('e_' + (err && err.message)) === 'e_' + (err && err.message) ? t('e_server') : t('e_' + err.message);
+
+/* ---------- Data ---------- */
+
+async function call(action, payload = {}) {
+  if (!API_URL) return demo(action, { token: state.token, ...payload });
+  let res;
+  try {
+    res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action, token: state.token, ...payload })
+    });
+  } catch { throw new Error('network'); }
+  if (!res.ok) throw new Error('network');
+  let data;
+  try { data = await res.json(); } catch { throw new Error('server'); }
+  if (!data.ok) throw new Error(data.error || 'server');
+  return data;
+}
+
+/* Runs the same actions as Code.gs inside this browser until API_URL is set. */
+let demoMemory = null;
+function demoLoad() {
+  if (demoMemory) return demoMemory;
+  try { demoMemory = JSON.parse(store.get('wishlist-demo')); } catch {}
+  if (!demoMemory) {
+    const day = n => new Date(Date.now() - n * 86400000).toISOString();
+    demoMemory = [
+      { id: 'd1', name: 'Proutěný košík', specific: false, link: '', price: '', options: '', status: 'open', added: day(9), bought: '' },
+      { id: 'd2', name: 'Ukázka: stolní lampa', specific: true, link: 'https://example.com/lamp', price: '1 290 Kč', options: 'matná černá', status: 'open', added: day(6), bought: '' },
+      { id: 'd3', name: 'Ukázka: lněná zástěra', specific: true, link: '', price: '640 Kč', options: 'šalvějová, velikost M', status: 'open', added: day(4), bought: '' },
+      { id: 'd4', name: 'Ukázka: kniha o zahradě', specific: false, link: '', price: '', options: '', status: 'bought', added: day(20), bought: day(2) }
+    ];
+  }
+  return demoMemory;
+}
+function demo(action, req) {
+  const items = demoLoad();
+  const isOwner = req.token === 'demo';
+  const find = id => {
+    const found = items.find(item => item.id === id);
+    if (!found) throw new Error('not_found');
+    return found;
+  };
+  const clean = raw => {
+    const name = (raw.name || '').trim();
+    if (!name) throw new Error('bad_input');
+    const on = raw.specific === true;
+    return { name, specific: on, link: on ? normalizeLink(raw.link) : '', price: on ? raw.price.trim() : '', options: on ? raw.options.trim() : '', image: on ? normalizeLink(raw.image) : '' };
+  };
+  const reply = extra => {
+    store.set('wishlist-demo', JSON.stringify(items));
+    const owner = extra && extra.token ? true : isOwner;
+    return { ok: true, owner, items: owner ? [...items] : items.filter(i => i.status === 'open'), ...extra };
+  };
+  if (['add', 'update', 'remove', 'restore'].includes(action) && !isOwner) throw new Error('session_expired');
+  switch (action) {
+    case 'list': return reply();
+    case 'login':
+      if (req.username !== 'demo' || req.password !== 'demo') throw new Error('bad_login');
+      return reply({ token: 'demo' });
+    case 'logout': return { ok: true, owner: false, items: items.filter(i => i.status === 'open') };
+    case 'buy': {
+      const item = find(req.id);
+      if (item.status === 'bought') throw new Error('already_bought');
+      item.status = 'bought'; item.bought = new Date().toISOString();
+      return reply();
+    }
+    case 'add':
+      items.push({ id: 'd' + Date.now(), ...clean(req.item), status: 'open', added: new Date().toISOString(), bought: '' });
+      return reply();
+    case 'update': Object.assign(find(req.id), clean(req.item)); return reply();
+    case 'remove': find(req.id); items.splice(items.findIndex(i => i.id === req.id), 1); return reply();
+    case 'restore': { const item = find(req.id); item.status = 'open'; item.bought = ''; return reply(); }
+    default: throw new Error('bad_input');
+  }
+}
+
+function normalizeLink(value) {
+  let link = (value || '').trim();
+  if (!link) return '';
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(link)) link = 'https://' + link;
+  return /^https?:\/\//i.test(link) ? link : '';
+}
+
+/* Public page readers. Used for the demo, and as a backup when a shop refuses the Sheet's request. */
+const PAGE_READERS = [
+  link => fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(link), { signal: AbortSignal.timeout(15000) }),
+  link => fetch('https://api.codetabs.com/v1/proxy/?quest=' + encodeURIComponent(link), { signal: AbortSignal.timeout(15000) }),
+  link => fetch('https://r.jina.ai/' + link, { headers: { 'X-Return-Format': 'html' }, signal: AbortSignal.timeout(15000) })
+];
+
+function ldImage(node) {
+  if (Array.isArray(node)) {
+    for (const entry of node) { const found = ldImage(entry); if (found) return found; }
+    return '';
+  }
+  if (!node || typeof node !== 'object') return '';
+  const types = [].concat(node['@type'] || []);
+  if (node.image && types.some(type => /^(.*[/#])?Product(Group)?$/.test(type))) {
+    const first = [].concat(node.image)[0];
+    const url = typeof first === 'string' ? first : first && (first.url || first.contentUrl);
+    if (url) return url;
+  }
+  for (const value of Object.values(node)) { const found = ldImage(value); if (found) return found; }
+  return '';
+}
+
+/* Prefers the shop's product data, because a page's general share image is sometimes just its logo. */
+function imageFromHtml(html, pageUrl) {
+  const doc = new DOMParser().parseFromString(html || '', 'text/html');
+  const meta = name => {
+    const node = doc.querySelector(`meta[property="${name}"],meta[name="${name}"]`);
+    return node && node.getAttribute('content');
+  };
+  const structured = [...doc.querySelectorAll('script[type="application/ld+json"]')].map(script => {
+    try { return ldImage(JSON.parse(script.textContent)); } catch { return ''; }
+  });
+  const shareLink = doc.querySelector('link[rel="image_src"]');
+  const itemProp = doc.querySelector('meta[itemprop="image"]');
+  const candidates = [...structured, meta('og:image:secure_url'), meta('og:image'), meta('twitter:image'), meta('twitter:image:src'),
+    shareLink && shareLink.getAttribute('href'), itemProp && itemProp.getAttribute('content')];
+  for (const candidate of candidates) {
+    if (!candidate || !candidate.trim()) continue;
+    try {
+      const url = new URL(candidate.trim(), pageUrl);
+      if (!/^https?:$/.test(url.protocol) || /\.svg$/i.test(url.pathname)) continue;
+      url.protocol = 'https:';
+      return url.href;
+    } catch {}
+  }
+  return '';
+}
+
+async function viaReader(reader, link) {
+  const res = await reader(link);
+  if (!res.ok) throw new Error('reader');
+  const image = imageFromHtml(await res.text(), link);
+  if (!image) throw new Error('reader');
+  return image;
+}
+
+async function findImage(link) {
+  if (API_URL) {
+    try {
+      const data = await call('readPage', { link });
+      const image = imageFromHtml(data.html, link);
+      if (image) return image;
+    } catch {}
+  }
+  return Promise.any(PAGE_READERS.map(reader => viaReader(reader, link))).catch(() => '');
+}
+
+function apply(data) {
+  const hadSession = !!state.token;
+  state.items = data.items || [];
+  state.owner = !!data.owner;
+  if (data.token) { state.token = data.token; store.set('wishlist-token', data.token); }
+  if (hadSession && !data.token && !state.owner) {
+    state.token = null; store.del('wishlist-token');
+    toast(t('e_session_expired'));
+  }
+  if (!state.owner) state.tab = 'open';
+  state.loaded = true; state.failed = false;
+  render();
+}
+
+let lastSnapshot = '';
+async function refresh({ quiet = false } = {}) {
+  try {
+    const data = await call('list');
+    const snapshot = JSON.stringify([data.owner, data.items]);
+    if (quiet && snapshot === lastSnapshot) return;
+    lastSnapshot = snapshot;
+    apply(data);
+  } catch (err) {
+    if (quiet) return;
+    state.failed = true; state.failedText = errorText(err);
+    render();
+  }
+}
+
+/* ---------- Rendering ---------- */
+
+function el(tag, props = {}, ...kids) {
+  const node = document.createElement(tag);
+  for (const [key, value] of Object.entries(props)) {
+    if (key === 'class') node.className = value;
+    else if (key === 'onclick') node.addEventListener('click', value);
+    else node[key] = value;
+  }
+  node.append(...kids.filter(kid => kid !== null && kid !== undefined && kid !== ''));
+  return node;
+}
+
+function fmtDate(iso) {
+  const date = new Date(iso);
+  if (isNaN(date)) return '';
+  return new Intl.DateTimeFormat('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' }).format(date);
+}
+
+function setThumb(box, src, alt, onFail) {
+  box.replaceChildren();
+  box.classList.toggle('empty', !src);
+  if (!src) return;
+  const img = el('img', { src, alt: alt || '', loading: 'lazy', referrerPolicy: 'no-referrer' });
+  img.addEventListener('error', () => {
+    img.remove();
+    box.classList.add('empty');
+    if (onFail) onFail();
+  });
+  box.append(img);
+}
+
+function card(item) {
+  const bought = item.status === 'bought';
+  const safeLink = item.specific && /^https?:\/\//i.test(item.link) ? item.link : '';
+  const box = safeLink
+    ? el('a', { class: 'thumb', href: safeLink, target: '_blank', rel: 'noopener noreferrer', tabIndex: -1 })
+    : el('div', { class: 'thumb' });
+  setThumb(box, item.specific ? item.image : '', item.name);
+
+  const main = el('div', { class: 'tag-main' },
+    el('div', { class: 'tag-head' },
+      el('div', { class: 'tag-title' },
+        el('h2', { textContent: item.name }),
+        !item.specific ? el('p', { class: 'anykind', textContent: t('anyKind') }) : null),
+      item.specific && item.price ? el('div', { class: 'price', textContent: item.price }) : null));
+  if (item.specific && item.options) {
+    main.append(el('p', { class: 'options' }, el('b', { textContent: t('optionsLabel') + ' ' }), item.options));
+  }
+  const tag = el('article', { class: 'tag' }, box, main);
+
+  const link = safeLink
+    ? el('a', { class: 'shop', href: safeLink, target: '_blank', rel: 'noopener noreferrer', textContent: t('shop') + ' ↗' })
+    : null;
+
+  if (bought) {
+    main.append(el('div', { class: 'stamp', textContent: `${t('boughtOn')} ${fmtDate(item.bought)}` }));
+    if (link) main.append(link);
+  } else {
+    tag.append(el('div', { class: 'actions' }, link,
+      el('button', { type: 'button', class: 'btn tick', textContent: t('tick'), onclick: () => openBuy(item) })));
+  }
+
+  if (state.owner) {
+    tag.append(el('div', { class: 'owner-actions' },
+      bought
+        ? el('button', { type: 'button', class: 'btn quiet', textContent: t('restore'), onclick: e => restore(item, e.currentTarget) })
+        : el('button', { type: 'button', class: 'btn quiet', textContent: t('edit'), onclick: () => openForm(item) }),
+      el('button', { type: 'button', class: 'btn quiet', textContent: t('remove'), onclick: () => openDelete(item) })));
+  }
+  return el('li', { class: 'item' }, tag);
+}
+
+function statusBlock(title, body, withRetry) {
+  return el('div', {},
+    el('h2', { textContent: title }),
+    body ? el('p', { textContent: body }) : null,
+    withRetry ? el('button', { type: 'button', class: 'btn', textContent: t('retry'), onclick: () => { state.failed = false; render(); refresh(); } }) : null);
+}
+
+function render() {
+  document.title = LIST_TITLE;
+  $('title').textContent = LIST_TITLE;
+  $('lede').textContent = t('lede');
+  $('demoNotice').textContent = t('demo');
+  $('demoNotice').hidden = !!API_URL;
+
+  document.querySelectorAll('[data-t]').forEach(node => { node.textContent = t(node.dataset.t); });
+  document.querySelectorAll('[data-ph]').forEach(node => { node.placeholder = t(node.dataset.ph); });
+
+  const open = state.items.filter(item => item.status !== 'bought');
+  const bought = state.items.filter(item => item.status === 'bought')
+    .sort((a, b) => String(b.bought).localeCompare(String(a.bought)));
+
+  $('ownerBar').hidden = !state.owner;
+  $('tabOpen').textContent = `${t('tabOpen')} (${open.length})`;
+  $('tabBought').textContent = `${t('tabBought')} (${bought.length})`;
+  $('tabOpen').setAttribute('aria-selected', String(state.tab === 'open'));
+  $('tabBought').setAttribute('aria-selected', String(state.tab === 'bought'));
+  $('addBtn').textContent = t('add');
+  $('signInBtn').textContent = t('signIn');
+  $('signOutBtn').textContent = t('signOut');
+  $('signInBtn').hidden = state.owner;
+  $('signOutBtn').hidden = !state.owner;
+
+  const shown = state.tab === 'bought' ? bought : open;
+  $('list').replaceChildren(...shown.map(card));
+
+  let block = null;
+  if (state.failed) block = statusBlock(state.failedText, '', true);
+  else if (!state.loaded) block = el('p', { textContent: t('loading') });
+  else if (!shown.length && state.tab === 'bought') block = statusBlock(t('emptyBought'), t('emptyBoughtBody'));
+  else if (!shown.length && state.owner) block = statusBlock(t('emptyOwner'), t('emptyOwnerBody'));
+  else if (!shown.length) block = statusBlock(t('emptyGuest'), t('emptyGuestBody'));
+  $('status').replaceChildren(...(block ? [block] : []));
+}
+
+let toastTimer;
+function toast(message) {
+  $('toast').textContent = message;
+  $('toast').hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { $('toast').hidden = true; }, 4000);
+}
+
+function showError(id, message) {
+  $(id).textContent = message || '';
+  $(id).hidden = !message;
+}
+
+async function busy(button, work) {
+  button.disabled = true;
+  try { return await work(); } finally { button.disabled = false; }
+}
+
+/* ---------- Actions ---------- */
+
+function openBuy(item) {
+  state.target = item;
+  $('buyName').textContent = item.name;
+  showError('buyError');
+  $('buyDlg').showModal();
+}
+
+$('buyConfirm').addEventListener('click', e => busy(e.currentTarget, async () => {
+  try {
+    apply(await call('buy', { id: state.target.id }));
+    $('buyDlg').close();
+    toast(t('tBought'));
+  } catch (err) {
+    if (err.message === 'already_bought' || err.message === 'not_found') {
+      $('buyDlg').close();
+      toast(errorText(err));
+      refresh();
+    } else showError('buyError', errorText(err));
+  }
+}));
+
+function openDelete(item) {
+  state.target = item;
+  $('delName').textContent = item.name;
+  showError('delError');
+  $('delDlg').showModal();
+}
+
+$('delConfirm').addEventListener('click', e => busy(e.currentTarget, async () => {
+  try {
+    apply(await call('remove', { id: state.target.id }));
+    $('delDlg').close();
+    toast(t('tRemoved'));
+  } catch (err) {
+    showError('delError', errorText(err));
+    if (err.message === 'session_expired') expire();
+  }
+}));
+
+async function restore(item, button) {
+  await busy(button, async () => {
+    try { apply(await call('restore', { id: item.id })); toast(t('tRestored')); }
+    catch (err) { toast(errorText(err)); if (err.message === 'session_expired') expire(); }
+  });
+}
+
+function expire() {
+  state.token = null; state.owner = false; state.tab = 'open';
+  store.del('wishlist-token');
+  refresh();
+}
+
+function syncDetails() { $('fDetails').hidden = !$('fSpecific').checked; }
+$('fSpecific').addEventListener('change', () => { syncDetails(); lookup(); });
+
+let lookupRun = 0, lookupPending = null, lookedUp = '', imageManual = false;
+
+function showFormImage(src, statusKey) {
+  $('imgStatus').textContent = t(statusKey);
+  setThumb($('fThumb'), src, $('fName').value, () => {
+    if (!imageManual) $('fImage').value = '';
+    $('imgStatus').textContent = t('imgBroken');
+  });
+}
+
+function lookup(force) {
+  const link = normalizeLink($('fLink').value);
+  if (force === true) imageManual = false;
+  if (imageManual || !$('fSpecific').checked) return lookupPending;
+  if (!link) {
+    lookupRun++; lookedUp = ''; lookupPending = null;
+    $('fImage').value = '';
+    showFormImage('', 'imgIdle');
+    return null;
+  }
+  if (link === lookedUp && force !== true) return lookupPending;
+  lookedUp = link;
+  const run = ++lookupRun;
+  $('imgFind').disabled = true;
+  $('fImage').value = '';
+  showFormImage('', 'imgSearching');
+  lookupPending = findImage(link).then(image => {
+    if (run !== lookupRun) return;
+    $('imgFind').disabled = false;
+    lookupPending = null;
+    if (imageManual) return;
+    $('fImage').value = image;
+    showFormImage(image, image ? 'imgFound' : 'imgNone');
+  });
+  return lookupPending;
+}
+
+$('fLink').addEventListener('change', () => lookup());
+$('fLink').addEventListener('paste', () => setTimeout(() => lookup(), 0));
+$('imgFind').addEventListener('click', () => lookup(true));
+$('fImage').addEventListener('input', () => {
+  const src = normalizeLink($('fImage').value);
+  imageManual = !!src;
+  lookupRun++;
+  lookupPending = null;
+  $('imgFind').disabled = false;
+  showFormImage(src, src ? '' : 'imgIdle');
+});
+
+function openForm(item) {
+  state.target = item || null;
+  $('formTitle').textContent = t(item ? 'editWish' : 'newWish');
+  $('fName').value = item ? item.name : '';
+  $('fSpecific').checked = !!(item && item.specific);
+  $('fLink').value = item ? item.link : '';
+  $('fPrice').value = item ? item.price : '';
+  $('fOptions').value = item ? item.options : '';
+  $('fImage').value = (item && item.image) || '';
+  imageManual = false; lookupRun++; lookupPending = null;
+  lookedUp = (item && item.image) ? item.link : '';
+  $('imgFind').disabled = false;
+  syncDetails();
+  showFormImage($('fImage').value, 'imgIdle');
+  showError('formError');
+  $('formDlg').showModal();
+  if (item && item.specific && item.link && !item.image) lookup();
+}
+$('addBtn').addEventListener('click', () => openForm(null));
+
+$('itemForm').addEventListener('submit', e => {
+  e.preventDefault();
+  busy($('formSave'), async () => {
+    await lookup();
+    const specific = $('fSpecific').checked;
+    const item = {
+      name: $('fName').value,
+      specific,
+      link: specific ? normalizeLink($('fLink').value) : '',
+      price: specific ? $('fPrice').value : '',
+      options: specific ? $('fOptions').value : '',
+      image: specific ? normalizeLink($('fImage').value) : ''
+    };
+    try {
+      const data = state.target
+        ? await call('update', { id: state.target.id, item })
+        : await call('add', { item });
+      apply(data);
+      $('formDlg').close();
+      toast(t('tSaved'));
+    } catch (err) {
+      showError('formError', errorText(err));
+      if (err.message === 'session_expired') { $('formDlg').close(); toast(errorText(err)); expire(); }
+    }
+  });
+});
+
+$('signInBtn').addEventListener('click', () => {
+  showError('loginError');
+  $('lPass').value = '';
+  $('loginDlg').showModal();
+});
+
+$('loginForm').addEventListener('submit', e => {
+  e.preventDefault();
+  busy($('loginSubmit'), async () => {
+    try {
+      state.token = null;
+      apply(await call('login', { username: $('lUser').value.trim(), password: $('lPass').value }));
+      $('lPass').value = '';
+      $('loginDlg').close();
+    } catch (err) { showError('loginError', errorText(err)); }
+  });
+});
+
+$('signOutBtn').addEventListener('click', e => busy(e.currentTarget, async () => {
+  try { await call('logout'); } catch {}
+  state.token = null; state.owner = false; state.tab = 'open';
+  store.del('wishlist-token');
+  await refresh();
+  toast(t('tSignedOut'));
+}));
+
+document.querySelectorAll('[data-close]').forEach(button =>
+  button.addEventListener('click', () => button.closest('dialog').close()));
+$('tabOpen').addEventListener('click', () => { state.tab = 'open'; render(); });
+$('tabBought').addEventListener('click', () => { state.tab = 'bought'; render(); });
+
+/* Keeps the list current while it stays open, so bought items vanish for other guests too. */
+const anyDialogOpen = () => document.querySelector('dialog[open]') !== null;
+setInterval(() => { if (!document.hidden && !anyDialogOpen()) refresh({ quiet: true }); }, 60000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && !anyDialogOpen()) refresh({ quiet: true }); });
+
+render();
+refresh();
+</script>
+</body>
+</html>
